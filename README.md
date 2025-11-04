@@ -123,6 +123,7 @@ nano .env
 ```
 
 Add your bot token and allowed user IDs:
+
 ```env
 BOT_TOKEN=your_bot_token_from_botfather
 ALLOWED_USER_IDS=123456789,987654321
@@ -131,6 +132,73 @@ DEBUG=false
 ```
 
 📖 **See [ENV_SETUP.md](docs/ENV_SETUP.md) for detailed configuration guide**
+
+### 3. Create Virtual Environment (Python 3.11+)
+
+**Important:** Newer Debian/Ubuntu menggunakan PEP 668 yang memerlukan virtual environment.
+
+```bash
+# Install venv
+sudo apt install python3-venv python3-full -y
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate venv
+source venv/bin/activate
+```
+
+### 4. Install Python Dependencies
+
+```bash
+# Make sure venv is activated (you'll see (venv) in prompt)
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 5. Run Bot
+
+```bash
+# Make sure venv is activated
+source venv/bin/activate
+
+# Run bot
+python main.py
+```
+
+📖 **See [QUICK_INSTALL.md](docs/QUICK_INSTALL.md) if you get PEP 668 errors**
+
+---
+
+## ⚠️ PEP 668 Error Fix
+
+If you see:
+```
+error: externally-managed-environment
+```
+
+**Solution: Use virtual environment (recommended)**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
+
+See [QUICK_INSTALL.md](docs/QUICK_INSTALL.md) for details.
+
+---
+
+## 🔄 Running After Reboot
+
+Every time you want to run the bot:
+```bash
+cd Play-Youtube-In-CLI
+source venv/bin/activate
+python main.py
+```
+
+Or setup as systemd service for 24/7 operation (see Installation docs).
 
 ### 3. Run Bot
 

@@ -21,12 +21,14 @@ sudo apt update
 
 # Install system dependencies
 echo "📦 Installing system dependencies..."
-sudo apt install -y python3 python3-pip python3-venv mpv ffmpeg
+sudo apt install -y python3 python3-pip python3-venv python3-full mpv ffmpeg
 
-# Create directory
-echo "📁 Creating bot directory..."
-mkdir -p ~/ytmusic-bot
-cd ~/ytmusic-bot
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+echo "📁 Using project directory: $PROJECT_DIR"
+cd "$PROJECT_DIR"
 
 # Create virtual environment
 echo "🐍 Creating Python virtual environment..."
@@ -36,31 +38,27 @@ source venv/bin/activate
 # Install Python packages
 echo "📦 Installing Python packages..."
 pip install --upgrade pip
-pip install python-telegram-bot==20.7 yt-dlp
+pip install -r requirements.txt
 
-# Check if bot file exists
-if [ ! -f "ytmusic_interactive_bot.py" ]; then
-    echo "⚠️  ytmusic_interactive_bot.py not found!"
-    echo "Please upload the bot file to ~/ytmusic-bot/"
-    exit 1
+# Setup environment file
+if [ ! -f ".env" ]; then
+    echo "⚙️  Creating .env file from template..."
+    cp .env.example .env
+    echo "⚠️  Please edit .env and add your BOT_TOKEN and ALLOWED_USER_IDS"
 fi
-
-# Make executable
-chmod +x ytmusic_interactive_bot.py
 
 echo ""
 echo "✅ Installation complete!"
 echo ""
 echo "📝 Next steps:"
-echo "1. Edit bot configuration:"
-echo "   nano ~/ytmusic-bot/ytmusic_interactive_bot.py"
-echo "   (Change TOKEN to your bot token)"
+echo "1. Configure environment variables:"
+echo "   nano .env"
+echo "   (Add BOT_TOKEN and ALLOWED_USER_IDS)"
 echo ""
 echo "2. Test the bot:"
-echo "   cd ~/ytmusic-bot"
 echo "   source venv/bin/activate"
-echo "   python3 ytmusic_interactive_bot.py"
+echo "   python main.py"
 echo ""
 echo "3. Setup as service (optional):"
-echo "   sudo ./setup_service.sh"
+echo "   sudo ./scripts/setup_service.sh"
 echo ""
