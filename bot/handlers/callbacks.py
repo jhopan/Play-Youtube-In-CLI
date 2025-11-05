@@ -59,6 +59,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "volume": handle_volume_menu,
         "show_queue": handle_show_queue,
         "show_info": handle_show_info,
+        "show_settings": handle_show_settings,
+        "toggle_yt_suggestions": handle_toggle_yt_suggestions,
         "back_to_main": handle_back_to_main,
         "auto_next_continue": handle_auto_next_continue,
         "auto_next_stop": handle_auto_next_stop,
@@ -528,3 +530,51 @@ async def handle_suggestion_stop(query, context):
     )
     
     logger.info(f"⏹️ @{username} stopped YouTube suggestions and playback")
+
+
+async def handle_show_settings(query, context):
+    """Show settings menu"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    settings_text = (
+        f"⚙️ <b>Bot Settings</b>\n\n"
+        f"<b>YouTube Suggestions:</b>\n"
+        f"Status: {'✅ Enabled' if player.yt_suggestions_enabled else '❌ Disabled'}\n"
+        f"When enabled, bot will suggest related videos from YouTube when playlist ends.\n"
+        f"When disabled, playlist will loop from beginning.\n\n"
+        f"Click button below to toggle:"
+    )
+    
+    await query.edit_message_text(
+        settings_text,
+        reply_markup=Keyboards.settings_menu(player.yt_suggestions_enabled),
+        parse_mode="HTML"
+    )
+    logger.info(f"⚙️ @{username} opened settings")
+
+
+async def handle_toggle_yt_suggestions(query, context):
+    """Toggle YouTube suggestions feature"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Toggle the setting
+    player.yt_suggestions_enabled = not player.yt_suggestions_enabled
+    status = "enabled" if player.yt_suggestions_enabled else "disabled"
+    
+    settings_text = (
+        f"⚙️ <b>Bot Settings</b>\n\n"
+        f"<b>YouTube Suggestions:</b>\n"
+        f"Status: {'✅ Enabled' if player.yt_suggestions_enabled else '❌ Disabled'}\n"
+        f"When enabled, bot will suggest related videos from YouTube when playlist ends.\n"
+        f"When disabled, playlist will loop from beginning.\n\n"
+        f"Click button below to toggle:"
+    )
+    
+    await query.edit_message_text(
+        settings_text,
+        reply_markup=Keyboards.settings_menu(player.yt_suggestions_enabled),
+        parse_mode="HTML"
+    )
+    
+    logger.info(f"🔄 @{username} {status} YouTube suggestions")
+

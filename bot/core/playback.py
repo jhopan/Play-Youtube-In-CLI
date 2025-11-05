@@ -102,6 +102,64 @@ class PlaybackManager:
     async def handle_song_finished(application: Application):
         """
         Handle when a song finishes playing
+        Auto-plays next song immediately
+        Shows YouTube suggestions if enabled, otherwise loops playlist
+        
+        Args:
+            application: Telegram application instance
+        """
+        from ..config import ENABLE_YOUTUBE_SUGGESTIONS
+        
+        # Prevent rapid consecutive calls
+        if not player.is_playing:
+            return
+            
+        if player.loop_enabled:
+            # Replay the same song
+            logger.info("🔁 Loop enabled - replaying current song")
+            await asyncio.sleep(0.5)
+            await PlaybackManager.play_current_song(application)
+        else:
+            # Check if there's a next song in queue
+            next_index = player.current_index + 1
+            
+            if next_index < len(player.playlist):
+                # Has next song - auto-play immediately
+                logger.info(f"⏩ Auto-playing next song ({next_index + 1}/{len(player.playlist)})")
+                await asyncio.sleep(0.5)
+                await PlaybackManager.play_next(application)
+            else:
+                # Queue finished - check YouTube suggestions setting
+                use_suggestions = ENABLE_YOUTUBE_SUGGESTIONS and player.yt_suggestions_enabled
+                
+                if use_suggestions:
+                    # Show YouTube suggestions
+                    logger.info("📺 Queue finished - fetching YouTube suggestions")
+                    await PlaybackManager.show_suggestions_dialog(application)
+                else:
+                    # Auto-loop playlist
+                    logger.info("🔄 Queue finished - restarting from beginning")
+                    player.current_index = 0
+                    
+                    if player.owner_id:
+                        try:
+                            await application.bot.send_message(
+                                chat_id=player.owner_id,
+                                text=(
+                                    f"🔄 <b>Playlist Finished!</b>\n\n"
+                                    f"♾️ Auto-restarting from beginning...\n"
+                                    f"📀 Total: {len(player.playlist)} songs\n\n"
+                                    f"💡 Enable YouTube Suggestions in Settings!"
+                                ),
+                                parse_mode="HTML"
+                            )
+                        except Exception as e:
+                            logger.error(f"Error: {e}")
+                    
+                    await asyncio.sleep(1)
+                    await PlaybackManager.play_current_song(application)
+        """
+        Handle when a song finishes playing
         Auto-plays next song immediately (no countdown dialog)
         Auto-loops playlist when queue finishes
         Optionally shows YouTube suggestions if enabled
@@ -381,6 +439,22 @@ class PlaybackManager:
         
         logger.info("🎬 Starting YouTube suggestions fetch...")
         
+        # Send "Searching..." notification to user
+        search_message = None
+        if player.owner_id:
+            try:
+                search_message = await application.bot.send_message(
+                    chat_id=player.owner_id,
+                    text=(
+                        f"🔍 <b>Searching for suggestions...</b>\n\n"
+                        f"📺 Finding related videos on YouTube...\n"
+                        f"⏱️ Please wait..."
+                    ),
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"Error sending search notification: {e}")
+        
         try:
             # Get related videos from YouTube with timeout
             logger.info(f"🔍 Fetching suggestions for: {player.current_song.title}")
@@ -412,19 +486,27 @@ class PlaybackManager:
                 logger.error(traceback.format_exc())
                 suggestions = []
             
+            # Delete "Searching..." message
+            if search_message:
+                try:
+                    await search_message.delete()
+                except:
+                    pass
+            
             if not suggestions:
                 # No suggestions found - stop playback
                 logger.warning("⚠️ No suggestions found - stopping playback")
                 player.is_playing = False
-                await application.bot.send_message(
-                    chat_id=player.owner_id,
-                    text=(
-                        f"🎵 <b>Queue Finished!</b>\n\n"
-                        f"No more songs to play.\n"
-                        f"Use Menu button to load more music! 🎶"
-                    ),
-                    parse_mode="HTML"
-                )
+                if player.owner_id:
+                    await application.bot.send_message(
+                        chat_id=player.owner_id,
+                        text=(
+                            f"🎵 <b>Queue Finished!</b>\n\n"
+                            f"No more songs to play.\n"
+                            f"Use Menu button to load more music! 🎶"
+                        ),
+                        parse_mode="HTML"
+                    )
                 return
             
             # Show first suggestion with options

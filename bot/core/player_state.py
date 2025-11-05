@@ -46,6 +46,9 @@ class PlayerState:
         self.loop_enabled: bool = False
         self.shuffle_enabled: bool = False
         
+        # Feature toggles
+        self.yt_suggestions_enabled: bool = True  # Default ON
+        
         # Audio settings
         self.volume: int = 50
         

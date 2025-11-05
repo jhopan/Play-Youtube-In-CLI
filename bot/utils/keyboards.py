@@ -82,11 +82,15 @@ class Keyboards:
                     callback_data="show_queue"
                 ),
             ],
-            # Row 6: Info
+            # Row 6: Info and Settings
             [
                 InlineKeyboardButton(
                     f"{EMOJI['info']} Info",
                     callback_data="show_info"
+                ),
+                InlineKeyboardButton(
+                    "⚙️ Settings",
+                    callback_data="show_settings"
                 ),
             ],
         ]
@@ -168,6 +172,28 @@ class Keyboards:
         keyboard = [
             [
                 InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ]
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def settings_menu(yt_suggestions_enabled: bool = True) -> InlineKeyboardMarkup:
+        """Settings menu keyboard"""
+        # Dynamic emoji based on state
+        yt_status = "✅ ON" if yt_suggestions_enabled else "❌ OFF"
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    f"📺 YouTube Suggestions: {yt_status}",
+                    callback_data="toggle_yt_suggestions"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
             ],
         ]
+        
         return InlineKeyboardMarkup(keyboard)
+
