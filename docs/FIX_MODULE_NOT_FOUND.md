@@ -19,6 +19,7 @@ python scripts/diagnose.py
 ```
 
 Script ini akan check:
+
 - Struktur folder `bot/`
 - Semua `__init__.py` files
 - Import bot modules
@@ -85,6 +86,7 @@ tree -L 2 bot/
 ```
 
 Seharusnya tampak seperti ini:
+
 ```
 bot/
 ├── __init__.py
@@ -179,11 +181,13 @@ python -c "from bot.config import TOKEN; print('✓ Import successful')"
 ```
 
 Jika berhasil:
+
 ```
 ✓ Import successful
 ```
 
 Sekarang run bot:
+
 ```bash
 python main.py
 ```
@@ -285,6 +289,7 @@ Jika masih error setelah semua solution:
 ---
 
 **Quick Fix Command:**
+
 ```bash
 cd ~ && rm -rf Play-Youtube-In-CLI && git clone https://github.com/jhopan/Play-Youtube-In-CLI.git && cd Play-Youtube-In-CLI && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cp .env.example .env && echo "✅ Done! Now edit .env and run: python main.py"
 ```

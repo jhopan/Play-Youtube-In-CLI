@@ -173,11 +173,13 @@ python main.py
 ## ⚠️ PEP 668 Error Fix
 
 If you see:
+
 ```
 error: externally-managed-environment
 ```
 
 **Solution: Use virtual environment (recommended)**
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -192,6 +194,7 @@ See [QUICK_INSTALL.md](docs/QUICK_INSTALL.md) for details.
 ## 🔄 Running After Reboot
 
 Every time you want to run the bot:
+
 ```bash
 cd Play-Youtube-In-CLI
 source venv/bin/activate

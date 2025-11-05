@@ -59,6 +59,7 @@ nano .env
 ```
 
 Add your bot token and user IDs:
+
 ```env
 BOT_TOKEN=your_bot_token_here
 ALLOWED_USER_IDS=123456789,987654321
@@ -95,6 +96,7 @@ nano ytmusic_bot.service
 ```
 
 Update paths (ganti `your_username`):
+
 ```ini
 [Service]
 User=your_username
@@ -120,6 +122,7 @@ sudo systemctl status ytmusic_bot
 ## ❌ Troubleshooting PEP 668 Error
 
 ### Problem:
+
 ```
 error: externally-managed-environment
 × This environment is externally managed

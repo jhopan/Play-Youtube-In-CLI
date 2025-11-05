@@ -15,6 +15,7 @@ Python 3.13 mengubah cara kerja object attributes, sehingga `python-telegram-bot
 ### Solution 1: Use Python 3.11 or 3.12 (Recommended)
 
 **Check Python version:**
+
 ```bash
 python3 --version
 ```
@@ -22,6 +23,7 @@ python3 --version
 **If you have Python 3.13, install Python 3.12:**
 
 #### On Debian/Ubuntu:
+
 ```bash
 # Add deadsnakes PPA (if not already added)
 sudo apt update
@@ -122,12 +124,12 @@ python main.py
 
 ## 📋 Version Compatibility Matrix
 
-| Python Version | python-telegram-bot | Status |
-|----------------|---------------------|--------|
-| 3.8 - 3.10 | 20.7 | ✅ Works |
-| 3.11 | 20.7 | ✅ Works |
-| 3.12 | 20.7 - 21.x | ✅ Works |
-| 3.13 | 21.x+ | ⚠️ Experimental |
+| Python Version | python-telegram-bot | Status          |
+| -------------- | ------------------- | --------------- |
+| 3.8 - 3.10     | 20.7                | ✅ Works        |
+| 3.11           | 20.7                | ✅ Works        |
+| 3.12           | 20.7 - 21.x         | ✅ Works        |
+| 3.13           | 21.x+               | ⚠️ Experimental |
 
 ## 🔍 Verify Your Setup
 
@@ -187,18 +189,21 @@ docker run -d --name ytmusic-bot --restart unless-stopped ytmusic-bot
 ## 🆘 Still Having Issues?
 
 ### Check Library Versions:
+
 ```bash
 pip list | grep telegram
 pip list | grep yt-dlp
 ```
 
 ### Force Reinstall:
+
 ```bash
 pip uninstall python-telegram-bot -y
 pip install python-telegram-bot>=21.0
 ```
 
 ### Use System Python (if 3.12):
+
 ```bash
 # Check system Python
 python3 --version

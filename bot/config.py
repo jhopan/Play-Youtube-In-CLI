@@ -83,6 +83,7 @@ EMOJI = {
     'playlist': '📋',
     'video': '🎬',
     'music': '🎵',
+    'now_playing': '🎵',
     'loading': '⏳',
     'success': '✅',
     'error': '❌',

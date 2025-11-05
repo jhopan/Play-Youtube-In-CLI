@@ -32,28 +32,29 @@ class MPVPlayer:
         """
         try:
             # Build command
-            cmd = [
-                'mpv',
-                '--no-video' if MPV_OPTIONS['no_video'] else '',
-                '--no-terminal' if MPV_OPTIONS['no_terminal'] else '',
-                '--quiet' if MPV_OPTIONS['quiet'] else '',
-                f'--volume={volume}',
-            ]
+            cmd = ['mpv']
+            
+            # Add boolean flags
+            if MPV_OPTIONS.get('no_video', True):
+                cmd.append('--no-video')
+            if MPV_OPTIONS.get('no_terminal', True):
+                cmd.append('--no-terminal')
+            if MPV_OPTIONS.get('quiet', True):
+                cmd.append('--quiet')
+            
+            # Add volume
+            cmd.append(f'--volume={volume}')
             
             # Add optional parameters
             if MPV_OPTIONS.get('demuxer_max_bytes'):
                 cmd.append(f'--demuxer-max-bytes={MPV_OPTIONS["demuxer_max_bytes"]}')
+            if MPV_OPTIONS.get('demuxer_max_back_bytes'):
+                cmd.append(f'--demuxer-max-back-bytes={MPV_OPTIONS["demuxer_max_back_bytes"]}')
             
-            if MPV_OPTIONS.get('cache') == 'yes':
-                cmd.append('--cache=yes')
-                if MPV_OPTIONS.get('cache_secs'):
-                    cmd.append(f'--cache-secs={MPV_OPTIONS["cache_secs"]}')
-            
-            # Add URL
+            # Add URL (must be last)
             cmd.append(url)
             
-            # Remove empty strings
-            cmd = [c for c in cmd if c]
+            logger.debug(f"MPV command: {' '.join(cmd)}")
             
             # Start process
             process = subprocess.Popen(

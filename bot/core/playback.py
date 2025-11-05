@@ -67,20 +67,25 @@ class PlaybackManager:
                     logger.error(f"Error sending notification: {e}")
             
             # Wait for playback to finish
-            await asyncio.get_event_loop().run_in_executor(
+            process_result = await asyncio.get_event_loop().run_in_executor(
                 None, player.mpv_process.wait
             )
             
+            # Add small delay to prevent rapid restarts
+            await asyncio.sleep(1)
+            
             # Check if playback finished naturally (not stopped manually)
-            if player.is_playing:
+            if player.is_playing and process_result == 0:
                 await PlaybackManager.handle_song_finished(application)
+            elif process_result != 0:
+                logger.warning(f"MPV exited with code {process_result}")
+                player.is_playing = False
             
             return True
             
         except Exception as e:
             logger.error(f"Error playing song: {e}")
-            if player.is_playing:
-                await PlaybackManager.handle_song_finished(application)
+            player.is_playing = False
             return False
     
     @staticmethod
@@ -92,9 +97,14 @@ class PlaybackManager:
         Args:
             application: Telegram application instance
         """
+        # Prevent rapid consecutive calls
+        if not player.is_playing:
+            return
+            
         if player.loop_enabled:
             # Replay the same song
             logger.info("Loop enabled, replaying current song")
+            await asyncio.sleep(0.5)  # Small delay before replay
             await PlaybackManager.play_current_song(application)
         else:
             # Move to next song
