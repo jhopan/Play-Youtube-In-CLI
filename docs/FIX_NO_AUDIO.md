@@ -3,6 +3,7 @@
 ## 🐛 Problem
 
 Bot jalan, tapi tidak ada suara di server karena:
+
 - Server headless (CLI only, no GUI)
 - Tidak ada audio output device
 - MPV tidak tahu kemana output audio
@@ -176,6 +177,7 @@ pactl list short sinks
 ```
 
 Run it:
+
 ```bash
 chmod +x setup_audio.sh
 ./setup_audio.sh
@@ -227,12 +229,14 @@ Jika mau dengar audio dari computer lain:
 ### 1. PulseAudio Network Streaming
 
 **On Server:**
+
 ```bash
 # Enable network streaming
 pactl load-module module-native-protocol-tcp auth-anonymous=1
 ```
 
 **On Client (Your Computer):**
+
 ```bash
 # Connect to server
 export PULSE_SERVER=tcp:your-server-ip:4713
@@ -258,6 +262,7 @@ mpv --ao=null --no-video "url"
 ```
 
 Update `bot/core/mpv_player.py`:
+
 ```python
 cmd.append('--ao=null')  # Silent mode for testing
 ```

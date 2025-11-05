@@ -7,12 +7,18 @@ import os
 import signal
 import subprocess
 import logging
+import json
+import socket
 from typing import Optional
+from pathlib import Path
 
 from .player_state import player
 from ..config import MPV_OPTIONS
 
 logger = logging.getLogger(__name__)
+
+# IPC socket path
+IPC_SOCKET = "/tmp/mpvsocket"
 
 
 class MPVPlayer:
@@ -31,8 +37,15 @@ class MPVPlayer:
             subprocess.Popen object or None if failed
         """
         try:
+            # Remove old socket if exists
+            if os.path.exists(IPC_SOCKET):
+                os.remove(IPC_SOCKET)
+            
             # Build command
             cmd = ['mpv']
+            
+            # Add IPC socket for control
+            cmd.append(f'--input-ipc-server={IPC_SOCKET}')
             
             # Add boolean flags
             if MPV_OPTIONS.get('no_video', True):
@@ -124,6 +137,72 @@ class MPVPlayer:
         if player.mpv_process:
             return player.mpv_process.poll() is None
         return False
+    
+    @staticmethod
+    def send_command(command: dict) -> bool:
+        """
+        Send command to MPV via IPC socket
+        
+        Args:
+            command: Dictionary with MPV command
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if not os.path.exists(IPC_SOCKET):
+                logger.warning("MPV IPC socket not found")
+                return False
+            
+            # Connect to socket
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(IPC_SOCKET)
+            
+            # Send command
+            command_str = json.dumps(command) + '\n'
+            sock.send(command_str.encode('utf-8'))
+            
+            # Get response
+            response = sock.recv(4096).decode('utf-8')
+            sock.close()
+            
+            logger.debug(f"MPV response: {response}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending command to MPV: {e}")
+            return False
+    
+    @staticmethod
+    def set_volume(volume: int) -> bool:
+        """
+        Set volume via IPC
+        
+        Args:
+            volume: Volume level (0-100)
+            
+        Returns:
+            True if successful
+        """
+        command = {
+            "command": ["set_property", "volume", volume]
+        }
+        success = MPVPlayer.send_command(command)
+        if success:
+            logger.info(f"Set volume to {volume}%")
+        return success
+    
+    @staticmethod
+    def get_volume() -> Optional[int]:
+        """Get current volume from MPV"""
+        try:
+            command = {"command": ["get_property", "volume"]}
+            # This needs more complex implementation to get return value
+            # For now, return stored volume from player state
+            return player.volume
+        except Exception as e:
+            logger.error(f"Error getting volume: {e}")
+            return None
     
     @staticmethod
     def get_status() -> str:

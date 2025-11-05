@@ -227,6 +227,12 @@ class PlaybackManager:
         player.volume = volume
         logger.info(f"Volume set to {volume}%")
         
-        # If currently playing, need to restart to apply volume
-        # This will be handled by the handler
+        # If MPV is running, update volume via IPC
+        if player.is_playing and MPVPlayer.is_running():
+            success = MPVPlayer.set_volume(volume)
+            if success:
+                logger.info(f"Updated MPV volume to {volume}% via IPC")
+            else:
+                logger.warning("Failed to update MPV volume via IPC, will apply on next song")
+        
         return True
