@@ -32,7 +32,7 @@ class PlaybackManager:
             True if successful, False otherwise
         """
         if not player.playlist:
-            logger.warning("No songs in playlist")
+            logger.warning("⚠️ No songs in playlist")
             return False
         
         if player.current_index >= len(player.playlist):
@@ -45,6 +45,8 @@ class PlaybackManager:
         try:
             # Stop any existing playback
             MPVPlayer.stop()
+            
+            logger.info(f"🎵 Now playing: '{current_song.title}' [{player.current_index + 1}/{len(player.playlist)}]")
             
             # Start new playback
             player.mpv_process = MPVPlayer.start(current_song.url, player.volume)
@@ -64,7 +66,7 @@ class PlaybackManager:
                         parse_mode="HTML"
                     )
                 except Exception as e:
-                    logger.error(f"Error sending notification: {e}")
+                    logger.error(f"❌ Error sending notification: {e}")
             
             # Wait for playback to finish
             process_result = await asyncio.get_event_loop().run_in_executor(
@@ -76,15 +78,16 @@ class PlaybackManager:
             
             # Check if playback finished naturally (not stopped manually)
             if player.is_playing and process_result == 0:
+                logger.info(f"✅ Song finished: '{current_song.title}'")
                 await PlaybackManager.handle_song_finished(application)
             elif process_result != 0:
-                logger.warning(f"MPV exited with code {process_result}")
+                logger.warning(f"⚠️ MPV exited with code {process_result}")
                 player.is_playing = False
             
             return True
             
         except Exception as e:
-            logger.error(f"Error playing song: {e}")
+            logger.error(f"❌ Error playing song: {e}")
             player.is_playing = False
             return False
     
@@ -93,6 +96,7 @@ class PlaybackManager:
         """
         Handle when a song finishes playing
         Decides whether to loop, go to next, or stop
+        Shows auto-next dialog with countdown
         
         Args:
             application: Telegram application instance
@@ -103,11 +107,84 @@ class PlaybackManager:
             
         if player.loop_enabled:
             # Replay the same song
-            logger.info("Loop enabled, replaying current song")
+            logger.info("🔁 Loop enabled - replaying current song")
             await asyncio.sleep(0.5)  # Small delay before replay
             await PlaybackManager.play_current_song(application)
         else:
-            # Move to next song
+            # Show auto-next dialog with countdown
+            logger.info("⏱️ Showing auto-next dialog (5 second countdown)")
+            await PlaybackManager.show_auto_next_dialog(application)
+    
+    @staticmethod
+    async def show_auto_next_dialog(application: Application, countdown_seconds: int = 5):
+        """
+        Show auto-next dialog with countdown
+        
+        Args:
+            application: Telegram application instance
+            countdown_seconds: Seconds before auto-playing next song
+        """
+        from ..utils.keyboards import Keyboards
+        
+        if not player.owner_id or not player.playlist:
+            return
+        
+        # Check if there's a next song
+        next_index = player.current_index + 1
+        if next_index >= len(player.playlist):
+            next_index = 0
+        
+        next_song = player.playlist[next_index]
+        
+        logger.info(f"📢 Auto-next dialog: Next song is '{next_song.title}'")
+        
+        try:
+            # Send initial message with countdown
+            message = await application.bot.send_message(
+                chat_id=player.owner_id,
+                text=(
+                    f"{EMOJI['info']} <b>Song Finished!</b>\n\n"
+                    f"▶️ <b>Next:</b> {next_song.title}\n\n"
+                    f"⏱️ Auto-playing in {countdown_seconds} seconds...\n"
+                    f"Press 'Stop' to cancel."
+                ),
+                reply_markup=Keyboards.auto_next_dialog(),
+                parse_mode="HTML"
+            )
+            
+            # Create countdown task
+            async def countdown_task():
+                for remaining in range(countdown_seconds - 1, 0, -1):
+                    await asyncio.sleep(1)
+                    try:
+                        await message.edit_text(
+                            (
+                                f"{EMOJI['info']} <b>Song Finished!</b>\n\n"
+                                f"▶️ <b>Next:</b> {next_song.title}\n\n"
+                                f"⏱️ Auto-playing in {remaining} seconds...\n"
+                                f"Press 'Stop' to cancel."
+                            ),
+                            reply_markup=Keyboards.auto_next_dialog(),
+                            parse_mode="HTML"
+                        )
+                    except Exception as e:
+                        logger.error(f"❌ Error updating countdown: {e}")
+                        break
+                
+                # Final countdown - play next
+                await asyncio.sleep(1)
+                if player.is_playing:  # Check if not manually stopped
+                    logger.info("⏩ Auto-next countdown finished - playing next song")
+                    await PlaybackManager.play_next(application)
+            
+            # Store task in bot_data so it can be cancelled
+            task = asyncio.create_task(countdown_task())
+            application.bot_data['auto_next_task'] = task
+            
+        except Exception as e:
+            logger.error(f"❌ Error showing auto-next dialog: {e}")
+            # Fallback - just play next
+            await asyncio.sleep(1)
             await PlaybackManager.play_next(application)
     
     @staticmethod
@@ -127,7 +204,7 @@ class PlaybackManager:
         if player.shuffle_enabled:
             # Random song
             player.current_index = random.randint(0, len(player.playlist) - 1)
-            logger.info(f"Shuffle: Selected random song at index {player.current_index}")
+            logger.info(f"🔀 Shuffle mode: Selected random song at index {player.current_index}")
         else:
             # Next song
             player.current_index += 1

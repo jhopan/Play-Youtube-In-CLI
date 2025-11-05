@@ -3,27 +3,32 @@
 ## 📝 Perintah Manual untuk Test Volume
 
 Bot sekarang support **2 metode** kontrol volume:
+
 1. **MPV IPC** (jika tersedia) - untuk kontrol volume di MPV saja
 2. **System Volume** via `amixer` - untuk kontrol volume system (RECOMMENDED)
 
 ## 🎯 Method 1: System Volume Control (RECOMMENDED)
 
 ### **Install amixer (jika belum):**
+
 ```bash
 sudo apt install alsa-utils -y
 ```
 
 ### **Naikkan Volume 5%:**
+
 ```bash
 amixer -D pulse sset Master 5%+
 ```
 
 ### **Turunkan Volume 5%:**
+
 ```bash
 amixer -D pulse sset Master 5%-
 ```
 
 ### **Set Volume ke Level Tertentu:**
+
 ```bash
 # Set ke 25%
 amixer -D pulse sset Master 25%
@@ -39,16 +44,19 @@ amixer -D pulse sset Master 100%
 ```
 
 ### **Toggle Mute:**
+
 ```bash
 amixer -D pulse sset Master toggle
 ```
 
 ### **Unmute:**
+
 ```bash
 amixer -D pulse sset Master unmute
 ```
 
 ### **Check Current Volume:**
+
 ```bash
 amixer -D pulse get Master
 ```
@@ -56,11 +64,13 @@ amixer -D pulse get Master
 ## 🎯 Method 2: MPV IPC Socket (Advanced)
 
 #### Check Socket Exists:
+
 ```bash
 ls -l /tmp/mpvsocket
 ```
 
 #### Test Naikkan Volume (Manual):
+
 ```bash
 # Set volume ke 75%
 echo '{ "command": ["set_property", "volume", 75] }' | socat - /tmp/mpvsocket
@@ -73,6 +83,7 @@ echo '{ "command": ["set_property", "volume", 50] }' | socat - /tmp/mpvsocket
 ```
 
 #### Get Current Volume:
+
 ```bash
 echo '{ "command": ["get_property", "volume"] }' | socat - /tmp/mpvsocket
 ```
@@ -97,13 +108,13 @@ def send_mpv_command(command):
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect('/tmp/mpvsocket')
-        
+
         command_str = json.dumps(command) + '\n'
         sock.send(command_str.encode('utf-8'))
-        
+
         response = sock.recv(4096).decode('utf-8')
         sock.close()
-        
+
         print(f"Response: {response}")
         return True
     except Exception as e:
@@ -115,13 +126,14 @@ if __name__ == "__main__":
         print("Usage: ./test_volume.py <volume>")
         print("Example: ./test_volume.py 75")
         sys.exit(1)
-    
+
     volume = int(sys.argv[1])
     command = {"command": ["set_property", "volume", volume]}
     send_mpv_command(command)
 ```
 
 Jalankan:
+
 ```bash
 chmod +x test_volume.py
 ./test_volume.py 100  # Set to 100%
@@ -131,6 +143,7 @@ chmod +x test_volume.py
 ### 4. **Perintah MPV Lainnya**
 
 #### Pause/Resume:
+
 ```bash
 # Pause
 echo '{ "command": ["set_property", "pause", true] }' | socat - /tmp/mpvsocket
@@ -140,16 +153,19 @@ echo '{ "command": ["set_property", "pause", false] }' | socat - /tmp/mpvsocket
 ```
 
 #### Get Playback Position:
+
 ```bash
 echo '{ "command": ["get_property", "time-pos"] }' | socat - /tmp/mpvsocket
 ```
 
 #### Get Duration:
+
 ```bash
 echo '{ "command": ["get_property", "duration"] }' | socat - /tmp/mpvsocket
 ```
 
 #### Seek (Skip Forward/Backward):
+
 ```bash
 # Skip 10 seconds forward
 echo '{ "command": ["seek", 10] }' | socat - /tmp/mpvsocket
@@ -174,6 +190,7 @@ lsof | grep mpvsocket
 ### 6. **Test dengan Bot**
 
 Di Telegram bot:
+
 1. Load video/playlist
 2. Klik button **Volume**
 3. Pilih 25%, 50%, 75%, atau 100%
@@ -219,6 +236,7 @@ echo "Did you hear the volume change?"
 ```
 
 Run:
+
 ```bash
 chmod +x quick_test_volume.sh
 ./quick_test_volume.sh
@@ -257,16 +275,19 @@ ls -l /tmp/mpvsocket
 ### No Audio Change
 
 1. Check if audio device working:
+
 ```bash
 speaker-test -t wav -c 2 -l 1
 ```
 
 2. Check PulseAudio:
+
 ```bash
 pulseaudio --check && echo "Running" || echo "Not running"
 ```
 
 3. Restart bot:
+
 ```bash
 python main.py
 ```

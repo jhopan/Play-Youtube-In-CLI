@@ -41,6 +41,10 @@ class Keyboards:
             # Row 2: Main playback controls
             [
                 InlineKeyboardButton(
+                    f"{EMOJI['prev']} Prev",
+                    callback_data="prev"
+                ),
+                InlineKeyboardButton(
                     f"{play_pause_emoji} {play_pause_text}",
                     callback_data="play_pause"
                 ),
@@ -48,12 +52,15 @@ class Keyboards:
                     f"{EMOJI['next']} Next",
                     callback_data="next"
                 ),
+            ],
+            # Row 3: Stop
+            [
                 InlineKeyboardButton(
-                    f"{EMOJI['prev']} Prev",
-                    callback_data="prev"
+                    f"{EMOJI['stop']} Stop",
+                    callback_data="stop"
                 ),
             ],
-            # Row 3: Modes and stop
+            # Row 4: Modes
             [
                 InlineKeyboardButton(
                     f"{loop_emoji} Loop",
@@ -63,20 +70,23 @@ class Keyboards:
                     f"{shuffle_emoji} Shuffle",
                     callback_data="toggle_shuffle"
                 ),
-                InlineKeyboardButton(
-                    f"{EMOJI['stop']} Stop",
-                    callback_data="stop"
-                ),
             ],
-            # Row 4: Settings and info
+            # Row 5: Volume and Queue
             [
                 InlineKeyboardButton(
                     f"{EMOJI['volume']} Volume",
                     callback_data="volume"
                 ),
                 InlineKeyboardButton(
-                    f"{EMOJI['queue']} Queue",
+                    f"{EMOJI['queue']} Queue ({len(player.playlist)})",
                     callback_data="show_queue"
+                ),
+            ],
+            # Row 6: Info
+            [
+                InlineKeyboardButton(
+                    f"{EMOJI['info']} Info",
+                    callback_data="show_info"
                 ),
             ],
         ]
@@ -85,18 +95,44 @@ class Keyboards:
     
     @staticmethod
     def volume_menu() -> InlineKeyboardMarkup:
-        """Get the volume control keyboard"""
+        """Get the volume control keyboard with fine adjustments"""
         keyboard = [
+            # Row 1: Volume adjustments
             [
-                InlineKeyboardButton("🔇 25%", callback_data="vol_25"),
+                InlineKeyboardButton("🔻 -10%", callback_data="vol_down"),
+                InlineKeyboardButton("� +10%", callback_data="vol_up"),
+            ],
+            # Row 2: Preset levels
+            [
+                InlineKeyboardButton("�🔇 25%", callback_data="vol_25"),
                 InlineKeyboardButton("🔉 50%", callback_data="vol_50"),
             ],
             [
                 InlineKeyboardButton("🔊 75%", callback_data="vol_75"),
                 InlineKeyboardButton("📢 100%", callback_data="vol_100"),
             ],
+            # Row 3: Mute and back
             [
+                InlineKeyboardButton("🔇 Mute/Unmute", callback_data="vol_mute"),
                 InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def auto_next_dialog() -> InlineKeyboardMarkup:
+        """Get the auto-next confirmation keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "▶️ Play Next",
+                    callback_data="auto_next_continue"
+                ),
+                InlineKeyboardButton(
+                    "⏹️ Stop",
+                    callback_data="auto_next_stop"
+                ),
             ],
         ]
         

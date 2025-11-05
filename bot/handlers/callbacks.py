@@ -21,9 +21,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Main callback query router"""
     query = update.callback_query
     user_id = update.effective_user.id
+    username = update.effective_user.username or update.effective_user.first_name
+    
+    logger.info(f"🎯 Button clicked by @{username} (ID: {user_id}): '{query.data}'")
     
     # Check access
     if not AccessControl.check_access(user_id):
+        logger.warning(f"🚫 Access denied for @{username} (ID: {user_id})")
         await query.answer(
             MessageFormatter.error_message("Access denied"),
             show_alert=True
@@ -33,6 +37,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check ownership for control commands
     control_commands = ["play_pause", "next", "prev", "stop", "toggle_loop", "toggle_shuffle"]
     if query.data in control_commands and not AccessControl.is_owner(user_id):
+        logger.warning(f"🚫 Non-owner @{username} tried to use control: '{query.data}'")
         await query.answer(
             MessageFormatter.error_message("Only the owner can control playback"),
             show_alert=True
@@ -53,7 +58,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "toggle_shuffle": handle_toggle_shuffle,
         "volume": handle_volume_menu,
         "show_queue": handle_show_queue,
+        "show_info": handle_show_info,
         "back_to_main": handle_back_to_main,
+        "auto_next_continue": handle_auto_next_continue,
+        "auto_next_stop": handle_auto_next_stop,
     }
     
     # Handle volume changes
@@ -71,29 +79,34 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_load_playlist(query, context):
     """Handle load playlist request"""
+    username = query.from_user.username or query.from_user.first_name
     context.user_data['waiting_for'] = 'playlist'
     await query.edit_message_text(
         f"{EMOJI['playlist']} <b>Load Playlist</b>\n\n"
         f"Please send me a YouTube playlist URL:",
         parse_mode="HTML"
     )
-    logger.info("Waiting for playlist URL")
+    logger.info(f"📋 @{username} requested to load playlist - waiting for URL")
 
 
 async def handle_load_video(query, context):
     """Handle load video request"""
+    username = query.from_user.username or query.from_user.first_name
     context.user_data['waiting_for'] = 'video'
     await query.edit_message_text(
         f"{EMOJI['video']} <b>Load Video</b>\n\n"
         f"Please send me a YouTube video URL:",
         parse_mode="HTML"
     )
-    logger.info("Waiting for video URL")
+    logger.info(f"🎥 @{username} requested to load video - waiting for URL")
 
 
 async def handle_play_pause(query, context):
     """Handle play/pause toggle"""
+    username = query.from_user.username or query.from_user.first_name
+    
     if not player.playlist:
+        logger.warning(f"⚠️ @{username} tried to play but playlist is empty")
         await query.edit_message_text(
             MessageFormatter.error_message("No songs in playlist. Load some music first!"),
             reply_markup=Keyboards.main_menu()
@@ -108,7 +121,7 @@ async def handle_play_pause(query, context):
             f"{EMOJI['play']} Starting playback...",
             reply_markup=Keyboards.main_menu()
         )
-        logger.info("Started playback")
+        logger.info(f"▶️ @{username} started playback")
     else:
         # Toggle pause/resume
         is_paused = PlaybackManager.toggle_pause()
@@ -119,13 +132,16 @@ async def handle_play_pause(query, context):
             f"{emoji} {status} playback",
             reply_markup=Keyboards.main_menu()
         )
-        logger.info(f"Playback {status.lower()}")
+        logger.info(f"{'⏸️' if is_paused else '▶️'} @{username} {status.lower()} playback")
 
 
 async def handle_next(query, context):
     """Handle next song"""
+    username = query.from_user.username or query.from_user.first_name
+    
     if not player.playlist:
         await query.answer("No songs in playlist", show_alert=True)
+        logger.warning(f"⚠️ @{username} tried to skip but playlist is empty")
         return
     
     asyncio.create_task(PlaybackManager.play_next(context.application))
@@ -134,13 +150,16 @@ async def handle_next(query, context):
         f"{EMOJI['next']} Skipping to next song...",
         reply_markup=Keyboards.main_menu()
     )
-    logger.info("Playing next song")
+    logger.info(f"⏭️ @{username} skipped to next song")
 
 
 async def handle_prev(query, context):
     """Handle previous song"""
+    username = query.from_user.username or query.from_user.first_name
+    
     if not player.playlist:
         await query.answer("No songs in playlist", show_alert=True)
+        logger.warning(f"⚠️ @{username} tried to go back but playlist is empty")
         return
     
     asyncio.create_task(PlaybackManager.play_previous(context.application))
@@ -149,22 +168,24 @@ async def handle_prev(query, context):
         f"{EMOJI['prev']} Playing previous song...",
         reply_markup=Keyboards.main_menu()
     )
-    logger.info("Playing previous song")
+    logger.info(f"⏮️ @{username} went to previous song")
 
 
 async def handle_stop(query, context):
     """Handle stop playback"""
+    username = query.from_user.username or query.from_user.first_name
     PlaybackManager.stop()
     
     await query.edit_message_text(
         f"{EMOJI['stop']} Playback stopped",
         reply_markup=Keyboards.main_menu()
     )
-    logger.info("Playback stopped")
+    logger.info(f"⏹️ @{username} stopped playback")
 
 
 async def handle_toggle_loop(query, context):
     """Handle loop toggle"""
+    username = query.from_user.username or query.from_user.first_name
     loop_enabled = PlaybackManager.toggle_loop()
     status = "enabled" if loop_enabled else "disabled"
     emoji = EMOJI['loop_active'] if loop_enabled else EMOJI['loop']
@@ -173,11 +194,12 @@ async def handle_toggle_loop(query, context):
         f"{emoji} Loop {status}",
         reply_markup=Keyboards.main_menu()
     )
-    logger.info(f"Loop {status}")
+    logger.info(f"🔁 @{username} {status} loop mode")
 
 
 async def handle_toggle_shuffle(query, context):
     """Handle shuffle toggle"""
+    username = query.from_user.username or query.from_user.first_name
     shuffle_enabled = PlaybackManager.toggle_shuffle()
     status = "enabled" if shuffle_enabled else "disabled"
     emoji = EMOJI['shuffle_active'] if shuffle_enabled else EMOJI['shuffle']
@@ -186,11 +208,12 @@ async def handle_toggle_shuffle(query, context):
         f"{emoji} Shuffle {status}",
         reply_markup=Keyboards.main_menu()
     )
-    logger.info(f"Shuffle {status}")
+    logger.info(f"🔀 @{username} {status} shuffle mode")
 
 
 async def handle_volume_menu(query, context):
     """Show volume menu"""
+    username = query.from_user.username or query.from_user.first_name
     await query.edit_message_text(
         f"{EMOJI['volume']} <b>Volume Control</b>\n\n"
         f"Current volume: {player.volume}%\n"
@@ -198,11 +221,64 @@ async def handle_volume_menu(query, context):
         reply_markup=Keyboards.volume_menu(),
         parse_mode="HTML"
     )
+    logger.info(f"🔊 @{username} opened volume menu (current: {player.volume}%)")
 
 
 async def handle_volume_change(query, context):
     """Handle volume change"""
-    volume = int(query.data.split('_')[1])
+    username = query.from_user.username or query.from_user.first_name
+    vol_action = query.data.split('_')[1]
+    
+    # Handle relative volume changes
+    if vol_action == "up":
+        from ..core.mpv_player import MPVPlayer
+        old_volume = player.volume
+        if MPVPlayer.volume_up(10):
+            player.volume = min(100, player.volume + 10)
+            await query.edit_message_text(
+                f"{EMOJI['volume']} Volume increased to {player.volume}%",
+                reply_markup=Keyboards.volume_menu(),
+                parse_mode="HTML"
+            )
+            logger.info(f"🔊 @{username} increased volume: {old_volume}% → {player.volume}%")
+        else:
+            await query.answer("Failed to increase volume", show_alert=True)
+            logger.error(f"❌ Volume increase failed for @{username}")
+        return
+    
+    elif vol_action == "down":
+        from ..core.mpv_player import MPVPlayer
+        old_volume = player.volume
+        if MPVPlayer.volume_down(10):
+            player.volume = max(0, player.volume - 10)
+            await query.edit_message_text(
+                f"{EMOJI['volume']} Volume decreased to {player.volume}%",
+                reply_markup=Keyboards.volume_menu(),
+                parse_mode="HTML"
+            )
+            logger.info(f"🔉 @{username} decreased volume: {old_volume}% → {player.volume}%")
+        else:
+            await query.answer("Failed to decrease volume", show_alert=True)
+            logger.error(f"❌ Volume decrease failed for @{username}")
+        return
+    
+    elif vol_action == "mute":
+        from ..core.mpv_player import MPVPlayer
+        if MPVPlayer.toggle_mute():
+            await query.edit_message_text(
+                f"{EMOJI['volume']} Volume muted/unmuted",
+                reply_markup=Keyboards.volume_menu(),
+                parse_mode="HTML"
+            )
+            logger.info(f"🔇 @{username} toggled mute")
+        else:
+            await query.answer("Failed to toggle mute", show_alert=True)
+            logger.error(f"❌ Mute toggle failed for @{username}")
+        return
+    
+    # Handle preset volume levels
+    volume = int(vol_action)
+    old_volume = player.volume
     
     if PlaybackManager.set_volume(volume):
         # If currently playing, restart to apply volume
@@ -214,11 +290,12 @@ async def handle_volume_change(query, context):
             MessageFormatter.volume_changed(volume),
             reply_markup=Keyboards.main_menu()
         )
-        logger.info(f"Volume changed to {volume}%")
+        logger.info(f"🔊 @{username} set volume: {old_volume}% → {volume}%")
 
 
 async def handle_show_queue(query, context):
     """Show current queue"""
+    username = query.from_user.username or query.from_user.first_name
     queue_text = MessageFormatter.queue_display()
     
     await query.edit_message_text(
@@ -226,12 +303,74 @@ async def handle_show_queue(query, context):
         reply_markup=Keyboards.main_menu(),
         parse_mode="HTML"
     )
+    logger.info(f"📋 @{username} viewed queue ({len(player.playlist)} songs)")
 
 
 async def handle_back_to_main(query, context):
     """Go back to main menu"""
+    username = query.from_user.username or query.from_user.first_name
     await query.edit_message_text(
         MessageFormatter.status_info(),
         reply_markup=Keyboards.main_menu(),
         parse_mode="HTML"
     )
+    logger.info(f"↩️ @{username} returned to main menu")
+
+
+async def handle_show_info(query, context):
+    """Show bot and current song information"""
+    username = query.from_user.username or query.from_user.first_name
+    info_text = f"{EMOJI['info']} <b>Bot Information</b>\n\n"
+    
+    # Current song info
+    if player.current_song:
+        info_text += f"<b>Now Playing:</b>\n"
+        info_text += f"🎵 {player.current_song.title}\n"
+        info_text += f"⏱️ Duration: {player.current_song.duration}\n"
+        info_text += f"🔗 <a href='{player.current_song.url}'>YouTube Link</a>\n\n"
+    else:
+        info_text += "No song currently playing\n\n"
+    
+    # Playlist info
+    info_text += f"<b>Playlist:</b>\n"
+    info_text += f"📀 Total songs: {len(player.playlist)}\n"
+    info_text += f"▶️ Current position: {player.current_index + 1}/{len(player.playlist)}\n\n"
+    
+    # Settings
+    info_text += f"<b>Settings:</b>\n"
+    info_text += f"🔊 Volume: {player.volume}%\n"
+    info_text += f"🔁 Loop: {'ON' if player.loop_enabled else 'OFF'}\n"
+    info_text += f"🔀 Shuffle: {'ON' if player.shuffle_enabled else 'OFF'}\n"
+    
+    await query.edit_message_text(
+        info_text,
+        reply_markup=Keyboards.back_button(),
+        parse_mode="HTML"
+    )
+    logger.info(f"ℹ️ @{username} viewed bot info")
+
+
+async def handle_auto_next_continue(query, context):
+    """Handle auto-next continue (play next song)"""
+    username = query.from_user.username or query.from_user.first_name
+    # Cancel the auto-next timer if it exists
+    if 'auto_next_task' in context.bot_data:
+        context.bot_data['auto_next_task'].cancel()
+        del context.bot_data['auto_next_task']
+    
+    # Play next song
+    await handle_next(query, context)
+    logger.info(f"⏩ @{username} manually continued to next song via auto-next dialog")
+
+
+async def handle_auto_next_stop(query, context):
+    """Handle auto-next stop (stop playback)"""
+    username = query.from_user.username or query.from_user.first_name
+    # Cancel the auto-next timer if it exists
+    if 'auto_next_task' in context.bot_data:
+        context.bot_data['auto_next_task'].cancel()
+        del context.bot_data['auto_next_task']
+    
+    # Stop playback
+    await handle_stop(query, context)
+    logger.info(f"⏹️ @{username} stopped playback via auto-next dialog")

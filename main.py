@@ -32,6 +32,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Disable noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
+
 # ============================================================================
 # ERROR HANDLER
 # ============================================================================
@@ -57,24 +62,24 @@ def main():
     try:
         # Validate configuration
         validate_config()
-        logger.info("Configuration validated successfully")
+        logger.info("✅ Configuration validated successfully")
         
     except ValueError as e:
-        logger.error(f"Configuration error: {e}")
+        logger.error(f"❌ Configuration error: {e}")
         print(f"\n❌ Configuration Error: {e}\n")
         return
     
     logger.info("=" * 60)
-    logger.info("YouTube Music Telegram Bot - Starting...")
+    logger.info("🎵 YouTube Music Telegram Bot - Starting...")
     logger.info("=" * 60)
-    logger.info(f"Token configured: {'Yes' if TOKEN != 'YOUR_BOT_TOKEN_HERE' else 'No'}")
-    logger.info(f"Log level: {logging.getLevelName(LOG_LEVEL)}")
+    logger.info(f"🔑 Token configured: {'Yes' if TOKEN != 'YOUR_BOT_TOKEN_HERE' else 'No'}")
+    logger.info(f"📝 Log level: {logging.getLevelName(LOG_LEVEL)}")
     
     # Create application
     application = Application.builder().token(TOKEN).build()
     
     # Add handlers
-    logger.info("Registering handlers...")
+    logger.info("📋 Registering handlers...")
     
     # Command handlers
     application.add_handler(CommandHandler("start", start_command))
@@ -97,20 +102,20 @@ def main():
     
     # Start bot
     logger.info("=" * 60)
-    logger.info("🎵 Bot is now running! Press Ctrl+C to stop.")
+    logger.info("🚀 Bot is now running! Press Ctrl+C to stop.")
     logger.info("=" * 60)
     
     try:
         application.run_polling(allowed_updates=Update.ALL_TYPES)
     except KeyboardInterrupt:
         logger.info("\n" + "=" * 60)
-        logger.info("Bot stopped by user (Ctrl+C)")
+        logger.info("⏸️ Bot stopped by user (Ctrl+C)")
         logger.info("=" * 60)
     finally:
         # Cleanup
-        logger.info("Cleaning up...")
+        logger.info("🧹 Cleaning up...")
         MPVPlayer.stop()
-        logger.info("Cleanup complete. Goodbye! 👋")
+        logger.info("✅ Cleanup complete. Goodbye! 👋")
 
 # ============================================================================
 # ENTRY POINT
