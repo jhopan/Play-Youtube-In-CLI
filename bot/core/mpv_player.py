@@ -176,7 +176,7 @@ class MPVPlayer:
     @staticmethod
     def set_volume(volume: int) -> bool:
         """
-        Set volume via IPC
+        Set volume via IPC or system amixer
         
         Args:
             volume: Volume level (0-100)
@@ -184,13 +184,43 @@ class MPVPlayer:
         Returns:
             True if successful
         """
-        command = {
-            "command": ["set_property", "volume", volume]
-        }
-        success = MPVPlayer.send_command(command)
-        if success:
-            logger.info(f"Set volume to {volume}%")
-        return success
+        try:
+            # Try IPC first (if MPV supports it)
+            if os.path.exists(IPC_SOCKET):
+                command = {
+                    "command": ["set_property", "volume", volume]
+                }
+                success = MPVPlayer.send_command(command)
+                if success:
+                    logger.info(f"Set volume to {volume}% via IPC")
+                    return True
+            
+            # Fallback to system volume control using amixer
+            try:
+                # Set volume using amixer
+                cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', f'{volume}%']
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+                
+                if result.returncode == 0:
+                    logger.info(f"Set system volume to {volume}% via amixer")
+                    return True
+                else:
+                    logger.warning(f"amixer failed: {result.stderr}")
+            except FileNotFoundError:
+                logger.warning("amixer not found, trying pactl...")
+                # Alternative: use pactl
+                cmd = ['pactl', 'set-sink-volume', '@DEFAULT_SINK@', f'{volume}%']
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+                
+                if result.returncode == 0:
+                    logger.info(f"Set system volume to {volume}% via pactl")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error setting volume: {e}")
+            return False
     
     @staticmethod
     def get_volume() -> Optional[int]:
@@ -203,6 +233,72 @@ class MPVPlayer:
         except Exception as e:
             logger.error(f"Error getting volume: {e}")
             return None
+    
+    @staticmethod
+    def volume_up(step: int = 5) -> bool:
+        """
+        Increase system volume
+        
+        Args:
+            step: Percentage to increase (default 5%)
+            
+        Returns:
+            True if successful
+        """
+        try:
+            cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', f'{step}%+']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0:
+                logger.info(f"Increased volume by {step}%")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error increasing volume: {e}")
+            return False
+    
+    @staticmethod
+    def volume_down(step: int = 5) -> bool:
+        """
+        Decrease system volume
+        
+        Args:
+            step: Percentage to decrease (default 5%)
+            
+        Returns:
+            True if successful
+        """
+        try:
+            cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', f'{step}%-']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0:
+                logger.info(f"Decreased volume by {step}%")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error decreasing volume: {e}")
+            return False
+    
+    @staticmethod
+    def toggle_mute() -> bool:
+        """
+        Toggle mute on/off
+        
+        Returns:
+            True if successful
+        """
+        try:
+            cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', 'toggle']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0:
+                logger.info("Toggled mute")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error toggling mute: {e}")
+            return False
     
     @staticmethod
     def get_status() -> str:

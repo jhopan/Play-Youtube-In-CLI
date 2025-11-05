@@ -2,9 +2,58 @@
 
 ## 📝 Perintah Manual untuk Test Volume
 
-### 1. **Menggunakan MPV IPC Socket**
+Bot sekarang support **2 metode** kontrol volume:
+1. **MPV IPC** (jika tersedia) - untuk kontrol volume di MPV saja
+2. **System Volume** via `amixer` - untuk kontrol volume system (RECOMMENDED)
 
-Bot sekarang menggunakan IPC socket untuk kontrol MPV secara live.
+## 🎯 Method 1: System Volume Control (RECOMMENDED)
+
+### **Install amixer (jika belum):**
+```bash
+sudo apt install alsa-utils -y
+```
+
+### **Naikkan Volume 5%:**
+```bash
+amixer -D pulse sset Master 5%+
+```
+
+### **Turunkan Volume 5%:**
+```bash
+amixer -D pulse sset Master 5%-
+```
+
+### **Set Volume ke Level Tertentu:**
+```bash
+# Set ke 25%
+amixer -D pulse sset Master 25%
+
+# Set ke 50%
+amixer -D pulse sset Master 50%
+
+# Set ke 75%
+amixer -D pulse sset Master 75%
+
+# Set ke 100% (maksimal)
+amixer -D pulse sset Master 100%
+```
+
+### **Toggle Mute:**
+```bash
+amixer -D pulse sset Master toggle
+```
+
+### **Unmute:**
+```bash
+amixer -D pulse sset Master unmute
+```
+
+### **Check Current Volume:**
+```bash
+amixer -D pulse get Master
+```
+
+## 🎯 Method 2: MPV IPC Socket (Advanced)
 
 #### Check Socket Exists:
 ```bash
