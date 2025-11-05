@@ -1,6 +1,7 @@
 # UI Enhancements - Improved User Experience
 
 ## Overview
+
 This document describes the enhanced user interface features added to the YouTube Music Player bot for better user experience and control.
 
 ## New Features
@@ -26,6 +27,7 @@ The main menu now has a cleaner, more organized layout:
 ```
 
 **Features:**
+
 - Logical grouping: Load → Playback → Modes → Settings → Info
 - Stop button in its own row for easy access
 - Queue button shows current playlist count
@@ -48,6 +50,7 @@ Enhanced volume menu with fine-grained control:
 ```
 
 **Features:**
+
 - **+10% / -10% buttons**: Fine-tune volume in 10% increments
 - **Preset levels**: Quick access to 25%, 50%, 75%, 100%
 - **Mute/Unmute toggle**: Instantly mute or restore volume
@@ -55,6 +58,7 @@ Enhanced volume menu with fine-grained control:
 - **No restart needed**: Volume changes apply to currently playing song
 
 **Volume Controls:**
+
 - `+10%`: Increase volume by 10% (via `amixer -D pulse sset Master 10%+`)
 - `-10%`: Decrease volume by 10% (via `amixer -D pulse sset Master 10%-`)
 - `Mute/Unmute`: Toggle mute (via `amixer -D pulse sset Master toggle`)
@@ -83,6 +87,7 @@ Settings:
 ```
 
 **Features:**
+
 - Current song details with YouTube link
 - Playlist position and total count
 - Current settings overview
@@ -106,15 +111,17 @@ Press 'Stop' to cancel.
 ```
 
 **Features:**
+
 - **5-second countdown**: Live countdown before auto-play
 - **Visual feedback**: Updates every second showing remaining time
-- **Manual control**: 
+- **Manual control**:
   - "Play Next" button to skip countdown
   - "Stop" button to cancel auto-play
 - **Cancellable**: Can be interrupted at any time
 - **Smart behavior**: Only shows if playlist has more songs
 
 **Behavior:**
+
 - Countdown updates in real-time (5, 4, 3, 2, 1...)
 - If not cancelled, automatically plays next song
 - If "Play Next" is clicked, immediately starts next song
@@ -150,22 +157,23 @@ Uses `asyncio` for non-blocking countdown:
 async def show_auto_next_dialog(application, countdown_seconds=5):
     # Send initial message
     message = await bot.send_message(...)
-    
+
     # Create countdown task
     async def countdown_task():
         for remaining in range(countdown_seconds - 1, 0, -1):
             await asyncio.sleep(1)
             await message.edit_text(...)  # Update countdown
-        
+
         # Auto-play next song
         await play_next(application)
-    
+
     # Store task for cancellation
     task = asyncio.create_task(countdown_task())
     application.bot_data['auto_next_task'] = task
 ```
 
 **Cancellation:**
+
 ```python
 # Cancel countdown when user clicks button
 if 'auto_next_task' in context.bot_data:
@@ -201,12 +209,14 @@ if 'auto_next_task' in context.bot_data:
 ## Benefits
 
 ### User Experience
+
 - **Intuitive layout**: Clear visual hierarchy
 - **Fine control**: Precise volume adjustments
 - **Transparency**: Full status visibility via Info button
 - **Predictability**: YouTube-like auto-next behavior
 
 ### Technical
+
 - **Non-blocking**: Countdown doesn't block other operations
 - **Cancellable**: User maintains full control
 - **Real-time**: Volume changes apply instantly
@@ -235,6 +245,7 @@ await PlaybackManager.show_auto_next_dialog(application, countdown_seconds=10)
 **Symptom**: +10% / -10% buttons don't change volume
 
 **Solution**: Ensure `amixer` is installed and PulseAudio is running:
+
 ```bash
 # Check amixer
 amixer -D pulse sset Master 5%+
@@ -248,6 +259,7 @@ pactl info
 **Symptom**: Countdown doesn't update or complete
 
 **Solution**: Check logs for errors:
+
 ```bash
 tail -f logs/bot.log | grep "auto-next"
 ```
@@ -257,6 +269,7 @@ tail -f logs/bot.log | grep "auto-next"
 **Symptom**: Info display shows incorrect song or settings
 
 **Solution**: Restart bot to reset state:
+
 ```bash
 systemctl restart ytmusic-bot
 ```
@@ -281,6 +294,7 @@ Potential improvements for future versions:
 ## Changelog
 
 ### Version 2.1 (Current)
+
 - ✅ Enhanced main menu layout with Info button
 - ✅ Advanced volume control (+10% / -10% / Mute)
 - ✅ Info display with comprehensive status
@@ -289,6 +303,7 @@ Potential improvements for future versions:
 - ✅ Non-blocking countdown with cancellation
 
 ### Version 2.0
+
 - ✅ MPV IPC socket implementation
 - ✅ System volume control via amixer fallback
 - ✅ Basic volume menu (preset levels only)

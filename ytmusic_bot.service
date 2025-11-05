@@ -5,18 +5,15 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu
-ExecStart=/usr/bin/python3 /home/ubuntu/ytmusic_interactive_bot.py
+WorkingDirectory=/home/ubuntu/Play-Youtube-In-CLI
+ExecStart=/home/ubuntu/Play-Youtube-In-CLI/venv/bin/python /home/ubuntu/Play-Youtube-In-CLI/main.py
 Restart=always
 RestartSec=10
-
-# Environment variables (optional)
-# Environment="TOKEN=your_bot_token_here"
 
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=ytmusic-bot
+SyslogIdentifier=ytmusic_bot
 
 [Install]
 WantedBy=multi-user.target

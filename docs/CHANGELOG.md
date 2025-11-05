@@ -13,26 +13,29 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
   - Logs every button click with action details
   - Tracks command usage with user attribution
   - Access control violations logged with user info
-  
 - **Playback Event Logging** 🎵
+
   - Song start/finish with title and position
   - Auto-next countdown events
   - Loop/shuffle mode changes with user info
   - MPV process status and exit codes
 
 - **Volume Control Logging** 🔊
+
   - Volume changes show old → new values
   - Volume menu interactions tracked
   - Mute/unmute events logged
   - Volume control failures logged with user
 
 - **URL Processing Logging** 🔗
+
   - URL submissions logged with source
   - Playlist loading progress (count, total)
   - Video addition with title and position
   - Invalid URL warnings with user info
 
 - **Visual Log Formatting** ✨
+
   - Emoji prefixes for easy scanning:
     - 🚀 Bot startup/shutdown
     - 📞 Commands received
@@ -86,6 +89,7 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
 #### ✨ New Features
 
 - **Enhanced Main Menu Layout**
+
   - Reorganized button layout for better UX
   - Added dedicated Info button for bot status
   - Stop button in its own row for easy access
@@ -93,6 +97,7 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
   - Cleaner visual hierarchy and grouping
 
 - **Advanced Volume Control** 🔊
+
   - **+10% / -10% buttons** - Fine-tune volume in 10% increments
   - **Mute/Unmute toggle** - Instant mute control
   - Preset levels retained (25%, 50%, 75%, 100%)
@@ -100,6 +105,7 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
   - All volume changes apply immediately to playing song
 
 - **Info Display** ℹ️
+
   - Comprehensive bot status overview
   - Current song details with clickable YouTube link
   - Playlist position and total count
@@ -118,12 +124,14 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
 #### 🔧 Technical Improvements
 
 - **Volume Backend Enhancement**
+
   - Direct `amixer` integration for volume up/down
   - Proper state tracking for volume changes
   - Triple fallback: MPV IPC → amixer → pactl
   - 10% increment/decrement support
 
 - **Auto-Next Implementation**
+
   - Async countdown with `asyncio.create_task()`
   - Task storage in `bot_data` for cancellation
   - Proper cleanup on stop/cancel
@@ -156,8 +164,8 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
   - MPV IPC socket implementation (`/tmp/mpvsocket`)
   - Live volume changes without restart
   - JSON-based command protocol
-  
 - **System Volume Fallback**
+
   - `amixer` integration for ALSA/PulseAudio
   - `pactl` fallback for PulseAudio-only systems
   - Triple-fallback system for reliability
@@ -179,21 +187,25 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
 #### 🐛 Bug Fixes
 
 - **Python 3.13 Compatibility**
+
   - Upgraded `python-telegram-bot` to >=21.0
   - Fixed AttributeError with async context managers
   - Updated all async patterns for Python 3.13
 
 - **Module Import Errors**
+
   - Fixed `ModuleNotFoundError: bot.config`
   - Force-added `config.py` to git (was in .gitignore)
   - Updated git tracking for all bot modules
 
 - **Infinite Loop Fix**
+
   - Added delays in playback loop (1s between songs)
   - Added MPV exit code checks
   - Prevented rapid process restarts
 
 - **Missing Emoji Keys**
+
   - Added 'now_playing', 'loop_active', 'shuffle_active'
   - Added 'playlist', 'video', 'info' emoji keys
   - Updated all handlers to use new keys
@@ -216,6 +228,7 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
 #### ✨ Features
 
 - **Modular Structure**
+
   - Separated monolithic bot into organized modules
   - Created `bot/` package with submodules
   - `core/` - Player logic (state, mpv, youtube, playback)
@@ -223,6 +236,7 @@ All notable changes to YouTube Music Telegram Bot will be documented in this fil
   - `utils/` - Utilities (keyboards, formatters, access control)
 
 - **Environment Variables**
+
   - `.env` file support for configuration
   - `BOT_TOKEN` - Telegram bot token
   - `ALLOWED_USER_IDS` - Comma-separated user IDs

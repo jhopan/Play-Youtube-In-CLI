@@ -20,33 +20,29 @@ sudo apt install -y python3 python3-pip mpv ffmpeg
 ### 2️⃣ Setup Bot (1 menit)
 
 ```bash
-# Buat folder
-mkdir ~/ytmusic-bot && cd ~/ytmusic-bot
-
-# Upload file ytmusic_interactive_bot.py ke folder ini
-# Bisa pakai scp, sftp, atau copy-paste
+# Clone repository
+git clone https://github.com/jhopan/Play-Youtube-In-CLI.git
+cd Play-Youtube-In-CLI
 
 # Install Python packages
-pip3 install python-telegram-bot yt-dlp
+pip3 install -r requirements.txt
 ```
 
 ### 3️⃣ Konfigurasi (1 menit)
 
 ```bash
-# Edit bot
-nano ytmusic_interactive_bot.py
+# Copy environment file
+cp .env.example .env
+
+# Edit configuration
+nano .env
 ```
 
-**Ganti baris ini:**
+**Isi dengan:**
 
-```python
-TOKEN = "YOUR_BOT_TOKEN_HERE"
-```
-
-**Dengan token Anda (dari @BotFather):**
-
-```python
-TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+```bash
+BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+ALLOWED_USER_IDS=123456789
 ```
 
 **Simpan:** `Ctrl+O` → `Enter` → `Ctrl+X`
@@ -55,14 +51,15 @@ TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
 
 ```bash
 # Test run
-python3 ytmusic_interactive_bot.py
+python3 main.py
 ```
 
 **Anda akan lihat:**
 
 ```
-2024-01-01 12:00:00 - INFO - Starting YouTube Music Player Bot...
-2024-01-01 12:00:00 - INFO - Bot is running...
+🎵 YouTube Music Telegram Bot - Starting...
+✅ Configuration validated successfully
+🚀 Bot is now running! Press Ctrl+C to stop.
 ```
 
 ### 5️⃣ Test di Telegram (30 detik)

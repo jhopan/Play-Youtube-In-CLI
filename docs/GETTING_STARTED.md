@@ -57,22 +57,21 @@ Anda sekarang punya **15 files**:
 **Time: 5 minutes**
 
 ```bash
-# Upload all files to Ubuntu Server
-scp -r * user@server:~/ytmusic-bot/
-
-# SSH to server
+# Clone repository on server
 ssh user@server
+git clone https://github.com/jhopan/Play-Youtube-In-CLI.git
+cd Play-Youtube-In-CLI
 
-# Install
-cd ~/ytmusic-bot
+# Install dependencies
 sudo apt install -y python3 python3-pip mpv ffmpeg
 pip3 install -r requirements.txt
 
-# Configure (edit TOKEN)
-nano ytmusic_interactive_bot.py
+# Configure
+cp .env.example .env
+nano .env  # Edit BOT_TOKEN and ALLOWED_USER_IDS
 
 # Run
-python3 ytmusic_interactive_bot.py
+python3 main.py
 ```
 
 ✅ Done! Test with `/start` in Telegram.
@@ -204,35 +203,25 @@ Open Telegram
 → Save it somewhere safe!
 ```
 
-#### 2️⃣ Upload Files to Server (5 minutes)
+#### 2️⃣ Clone Repository on Server (2 minutes)
 
-**Option A: Using SCP (from your computer)**
-
-```bash
-# Upload entire folder
-scp -r "Project Debian Server CLI ONly"/* user@your-server:~/ytmusic-bot/
-```
-
-**Option B: Using SFTP Client**
-
-- Use FileZilla / WinSCP
-- Connect to your server
-- Create folder: `/home/user/ytmusic-bot`
-- Upload all files there
-
-**Option C: Clone from Git (if you uploaded to GitHub)**
+**SSH to your server and clone:**
 
 ```bash
-git clone https://your-repo.git ~/ytmusic-bot
+ssh user@your-server
+cd ~
+git clone https://github.com/jhopan/Play-Youtube-In-CLI.git
+cd Play-Youtube-In-CLI
 ```
 
 #### 3️⃣ Follow the Guide
 
 ```
-SSH to your server
-→ cd ~/ytmusic-bot
+You're now in the project folder!
 → Open QUICKSTART.md
-→ Follow the steps
+→ Follow the installation steps
+→ Configure .env file
+→ Run the bot
 ```
 
 ---
@@ -338,7 +327,7 @@ You'll know you're successful when:
 2. **Bookmark TROUBLESHOOTING.md** - Very useful later.
 3. **Test on local machine first** - If you have Ubuntu/Linux PC.
 4. **Read error messages** - They usually tell you what's wrong.
-5. **Check logs** - `sudo journalctl -u ytmusic-bot -f` is your friend.
+5. **Check logs** - `sudo journalctl -u ytmusic_bot -f` is your friend.
 
 ---
 

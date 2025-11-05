@@ -33,76 +33,55 @@ ffmpeg -version
 
 ## 🚀 Bot Installation
 
-### 1. Create Working Directory
+### 1. Clone Repository
 
 ```bash
-mkdir -p ~/ytmusic-bot
-cd ~/ytmusic-bot
+cd ~
+git clone https://github.com/jhopan/Play-Youtube-In-CLI.git
+cd Play-Youtube-In-CLI
 ```
 
-### 2. Upload Files
-
-Upload these files to `~/ytmusic-bot/`:
-
-- `ytmusic_interactive_bot.py`
-- `requirements.txt`
+### 2. Create Virtual Environment (Recommended)
 
 ```bash
-# Jika menggunakan scp dari komputer lokal:
-# scp ytmusic_interactive_bot.py user@server:~/ytmusic-bot/
-# scp requirements.txt user@server:~/ytmusic-bot/
-```
-
-### 3. Create Virtual Environment (Recommended)
-
-```bash
-cd ~/ytmusic-bot
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 4. Install Python Dependencies
+### 3. Install Python Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 5. Configure Bot Token
+### 4. Configure Bot Token
 
 Edit file `ytmusic_interactive_bot.py`:
 
 ```bash
-nano ytmusic_interactive_bot.py
+cp .env.example .env
+nano .env
 ```
 
-Ganti baris:
+Fill with your bot token from [@BotFather](https://t.me/botfather):
 
-```python
-TOKEN = "YOUR_BOT_TOKEN_HERE"
+```bash
+BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+ALLOWED_USER_IDS=123456789,987654321
+DEFAULT_VOLUME=50
+LOG_LEVEL=INFO
 ```
 
-Dengan token bot Anda dari [@BotFather](https://t.me/botfather):
-
-```python
-TOKEN = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-```
-
-Optional - Tambahkan whitelist user:
-
-```python
-ALLOWED_USERS = [123456789, 987654321]  # User ID Telegram Anda
-```
-
-Simpan dengan `Ctrl+O`, `Enter`, lalu `Ctrl+X`
+Save dengan `Ctrl+O`, `Enter`, lalu `Ctrl+X`
 
 ## 🧪 Test Run Bot
 
 ### 1. Manual Test
 
 ```bash
-cd ~/ytmusic-bot
+cd ~/Play-Youtube-In-CLI
 source venv/bin/activate  # jika menggunakan venv
-python3 ytmusic_interactive_bot.py
+python3 main.py
 ```
 
 ### 2. Test di Telegram
@@ -119,13 +98,17 @@ Tekan `Ctrl+C` untuk stop bot
 
 ### 1. Create Service File
 
+## 🔧 Setup as Systemd Service (Auto-Start 24/7)
+
+### 1. Edit Service File
+
+The repository includes `ytmusic_bot.service`. Edit paths if needed:
+
 ```bash
-sudo nano /etc/systemd/system/ytmusic-bot.service
+nano ytmusic_bot.service
 ```
 
-### 2. Paste Configuration
-
-**Jika TANPA Virtual Environment:**
+**Update username if not 'ubuntu':**
 
 ```ini
 [Unit]
@@ -135,31 +118,8 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/ytmusic-bot
-ExecStart=/usr/bin/python3 /home/ubuntu/ytmusic-bot/ytmusic_interactive_bot.py
-Restart=always
-RestartSec=10
-
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=ytmusic-bot
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Jika DENGAN Virtual Environment:**
-
-```ini
-[Unit]
-Description=YouTube Music Telegram Bot
-After=network.target
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/ytmusic-bot
-ExecStart=/home/ubuntu/ytmusic-bot/venv/bin/python /home/ubuntu/ytmusic-bot/ytmusic_interactive_bot.py
+WorkingDirectory=/home/ubuntu/Play-Youtube-In-CLI
+ExecStart=/home/ubuntu/Play-Youtube-In-CLI/venv/bin/python /home/ubuntu/Play-Youtube-In-CLI/main.py
 Restart=always
 RestartSec=10
 
@@ -173,42 +133,45 @@ WantedBy=multi-user.target
 
 ⚠️ **Penting:** Ganti `ubuntu` dengan username Linux Anda!
 
-### 3. Enable & Start Service
+### 2. Install Service
 
 ```bash
+# Copy service file
+sudo cp ytmusic_bot.service /etc/systemd/system/
+
 # Reload systemd
 sudo systemctl daemon-reload
 
 # Enable auto-start on boot
-sudo systemctl enable ytmusic-bot
+sudo systemctl enable ytmusic_bot
 
 # Start service
-sudo systemctl start ytmusic-bot
+sudo systemctl start ytmusic_bot
 
 # Check status
-sudo systemctl status ytmusic-bot
+sudo systemctl status ytmusic_bot
 ```
 
-### 4. Service Management Commands
+### 3. Service Management Commands
 
 ```bash
 # Start bot
-sudo systemctl start ytmusic-bot
+sudo systemctl start ytmusic_bot
 
 # Stop bot
-sudo systemctl stop ytmusic-bot
+sudo systemctl stop ytmusic_bot
 
 # Restart bot
-sudo systemctl restart ytmusic-bot
+sudo systemctl restart ytmusic_bot
 
 # View logs (real-time)
-sudo journalctl -u ytmusic-bot -f
+sudo journalctl -u ytmusic_bot -f
 
 # View last 100 lines
-sudo journalctl -u ytmusic-bot -n 100
+sudo journalctl -u ytmusic_bot -n 100
 
 # Disable auto-start
-sudo systemctl disable ytmusic-bot
+sudo systemctl disable ytmusic_bot
 ```
 
 ## 🎮 Alternative: Run with Screen (Simple Method)
@@ -224,10 +187,10 @@ sudo apt install screen -y
 ### 2. Run Bot in Screen
 
 ```bash
-cd ~/ytmusic-bot
+cd ~/Play-Youtube-In-CLI
 screen -S ytmusic
 source venv/bin/activate  # jika pakai venv
-python3 ytmusic_interactive_bot.py
+python3 main.py
 ```
 
 ### 3. Detach Screen
@@ -253,10 +216,10 @@ screen -X -S ytmusic quit
 
 ```bash
 # Check if bot is running
-sudo systemctl status ytmusic-bot
+sudo systemctl status ytmusic_bot
 
 # Check logs
-sudo journalctl -u ytmusic-bot -n 50
+sudo journalctl -u ytmusic_bot -n 50
 ```
 
 ### MPV error
@@ -281,10 +244,10 @@ pip install --upgrade yt-dlp
 
 ```bash
 # Fix file permissions
-chmod +x ~/ytmusic-bot/ytmusic_interactive_bot.py
+chmod +x ~/Play-Youtube-In-CLI/main.py
 
 # Fix ownership
-sudo chown -R $USER:$USER ~/ytmusic-bot
+sudo chown -R $USER:$USER ~/Play-Youtube-In-CLI
 ```
 
 ### Token invalid
@@ -310,29 +273,31 @@ ps aux | grep python
 
 ```bash
 # Stop service
-sudo systemctl stop ytmusic-bot
+sudo systemctl stop ytmusic_bot
 
-# Backup old version
-cp ytmusic_interactive_bot.py ytmusic_interactive_bot.py.backup
+# Pull latest changes
+cd ~/Play-Youtube-In-CLI
+git pull origin main
 
-# Update file (upload new version)
-# ...
+# Update dependencies
+source venv/bin/activate
+pip install -r requirements.txt --upgrade
 
 # Restart service
-sudo systemctl start ytmusic-bot
+sudo systemctl start ytmusic_bot
 
 # Check status
-sudo systemctl status ytmusic-bot
+sudo systemctl status ytmusic_bot
 ```
 
 ## 📝 Get Your Telegram User ID
 
-Untuk setup ALLOWED_USERS, Anda perlu User ID:
+Untuk setup ALLOWED_USER_IDS, Anda perlu User ID:
 
 1. Buka bot: [@userinfobot](https://t.me/userinfobot)
 2. Kirim `/start`
 3. Copy angka "Id:" (contoh: 123456789)
-4. Masukkan ke `ALLOWED_USERS = [123456789]`
+4. Masukkan ke `.env`: `ALLOWED_USER_IDS=123456789`
 
 ## 🔥 Firewall (Optional)
 
@@ -364,7 +329,7 @@ Bot tidak perlu port khusus karena menggunakan Telegram Bot API (outgoing only).
 ## 🎉 Usage
 
 1. Kirim `/start` ke bot Anda
-2. Klik **🎶 Load Playlist** atau **🎵 Load Video**
+2. Klik **📋 Load Playlist** atau **� Load Video**
 3. Kirim link YouTube
 4. Musik akan otomatis diputar
 5. Kontrol dengan tombol-tombol yang tersedia
@@ -373,9 +338,10 @@ Bot tidak perlu port khusus karena menggunakan Telegram Bot API (outgoing only).
 
 Jika ada masalah:
 
-1. Check logs: `sudo journalctl -u ytmusic-bot -f`
-2. Test manual: `python3 ytmusic_interactive_bot.py`
+1. Check logs: `sudo journalctl -u ytmusic_bot -f`
+2. Test manual: `python3 main.py`
 3. Verify dependencies: `mpv --version`, `python3 --version`
+4. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed help
 
 ---
 

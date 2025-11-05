@@ -7,6 +7,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ## What's Logged
 
 ### 🚀 Bot Startup
+
 ```
 🎵 YouTube Music Telegram Bot - Starting...
 ✅ Configuration validated successfully
@@ -23,12 +24,14 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ### 👤 User Interactions
 
 **Commands:**
+
 ```
 📞 /start command received from @username (ID: 123456789, Name: John)
 💬 Welcome message sent to @username
 ```
 
 **Button Clicks:**
+
 ```
 🎯 Button clicked by @username (ID: 123456789): 'play_pause'
 ▶️ @username started playback
@@ -39,6 +42,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ```
 
 **Access Control:**
+
 ```
 🚫 Access denied for @unauthorized (ID: 987654321)
 🚫 Non-owner @guest tried to use control: 'next'
@@ -47,12 +51,14 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ### 🎵 Playback Events
 
 **Song Playing:**
+
 ```
 🎵 Now playing: 'Song Title Here' [3/10]
 ✅ Song finished: 'Song Title Here'
 ```
 
 **Auto-Next Dialog:**
+
 ```
 ⏱️ Showing auto-next dialog (5 second countdown)
 📢 Auto-next dialog: Next song is 'Next Song Title'
@@ -62,6 +68,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ```
 
 **Loop & Shuffle:**
+
 ```
 🔁 Loop enabled - replaying current song
 🔁 @username enabled loop mode
@@ -72,11 +79,13 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ### 🔊 Volume Control
 
 **Volume Menu:**
+
 ```
 🔊 @username opened volume menu (current: 50%)
 ```
 
 **Volume Changes:**
+
 ```
 🔊 @username increased volume: 50% → 60%
 🔉 @username decreased volume: 60% → 50%
@@ -85,6 +94,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ```
 
 **Volume Errors:**
+
 ```
 ❌ Volume increase failed for @username
 ❌ Volume decrease failed for @username
@@ -94,6 +104,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ### 🔗 URL Processing
 
 **Video/Playlist Loading:**
+
 ```
 🔗 @username sent URL: https://youtube.com/watch?v=...
 📋 @username loading playlist from: https://youtube.com/playlist?list=...
@@ -106,6 +117,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ```
 
 **URL Errors:**
+
 ```
 ⚠️ Invalid YouTube URL from @username: https://invalid-url.com
 ❌ Error processing URL from @username: Connection timeout
@@ -114,6 +126,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ### 📋 Navigation
 
 **Menu Actions:**
+
 ```
 📋 @username viewed queue (10 songs)
 ℹ️ @username viewed bot info
@@ -125,6 +138,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ### ⚠️ Warnings & Errors
 
 **Warnings:**
+
 ```
 ⚠️ @username tried to play but playlist is empty
 ⚠️ @username tried to skip but playlist is empty
@@ -133,6 +147,7 @@ Bot now features comprehensive terminal logging that shows meaningful activity i
 ```
 
 **Errors:**
+
 ```
 ❌ Error playing song: MPV process failed
 ❌ Error sending notification: User blocked bot
@@ -155,11 +170,13 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 ### Log Format
 
 All logs use the format:
+
 ```
 %(asctime)s - %(name)s - %(levelname)s - %(message)s
 ```
 
 Example:
+
 ```
 2024-11-05 10:30:45,123 - __main__ - INFO - 🎵 Now playing: 'Song Title' [1/10]
 ```
@@ -176,7 +193,7 @@ Example:
 ✅ **User Tracking**: See who does what  
 ✅ **Debugging**: Detailed event timeline  
 ✅ **Performance**: Quick issue identification  
-✅ **Audit Trail**: Complete activity history  
+✅ **Audit Trail**: Complete activity history
 
 ## Example Session
 
@@ -211,6 +228,7 @@ Make sure you're using the latest version with the logger suppression code in `m
 ### Logs Not Showing?
 
 Check log level in `.env`:
+
 ```bash
 LOG_LEVEL=INFO
 ```
@@ -218,6 +236,7 @@ LOG_LEVEL=INFO
 ### Too Verbose?
 
 Set to WARNING to only see issues:
+
 ```bash
 LOG_LEVEL=WARNING
 ```

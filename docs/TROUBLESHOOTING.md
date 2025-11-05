@@ -18,14 +18,14 @@ Panduan lengkap mengatasi masalah pada YouTube Music Bot.
 ✅ **Check if bot is running:**
 
 ```bash
-ps aux | grep ytmusic_interactive_bot.py
+ps aux | grep main.py
 ```
 
 ✅ **Check logs:**
 
 ```bash
 # If using systemd
-sudo journalctl -u ytmusic-bot -n 50
+sudo journalctl -u ytmusic_bot -n 50
 
 # If running manually
 # Check terminal output
@@ -35,7 +35,7 @@ sudo journalctl -u ytmusic-bot -n 50
 
 ```bash
 # Edit bot
-nano ytmusic_interactive_bot.py
+nano main.py
 
 # Make sure TOKEN is correct (from @BotFather)
 # Format: "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
@@ -45,11 +45,11 @@ nano ytmusic_interactive_bot.py
 
 ```bash
 # If systemd
-sudo systemctl restart ytmusic-bot
+sudo systemctl restart ytmusic_bot
 
 # If manual
 # Ctrl+C and run again
-python3 ytmusic_interactive_bot.py
+python3 main.py
 ```
 
 ✅ **Check internet:**
@@ -112,7 +112,7 @@ TOKEN = """1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"""  # Triple quotes
 
 ```python
 # Open bot file
-nano ytmusic_interactive_bot.py
+nano main.py
 
 # Find this line
 ALLOWED_USERS = [123456789]  # Your user ID must be here
@@ -247,7 +247,7 @@ You control via Telegram, but music plays on server (silent)
 ps aux | grep mpv
 
 # Check mpv logs
-sudo journalctl -u ytmusic-bot -f
+sudo journalctl -u ytmusic_bot -f
 ```
 
 ✅ **If you want audio output:**
@@ -320,7 +320,7 @@ pkill -9 mpv
 ✅ **Restart bot:**
 
 ```bash
-sudo systemctl restart ytmusic-bot
+sudo systemctl restart ytmusic_bot
 ```
 
 ---
@@ -337,7 +337,7 @@ sudo systemctl restart ytmusic-bot
 ✅ **Enable auto-restart:**
 
 ```ini
-# In ytmusic-bot.service
+# In ytmusic_bot.service
 [Service]
 Restart=always
 RestartSec=10
@@ -346,13 +346,13 @@ RestartSec=10
 ✅ **Check logs for errors:**
 
 ```bash
-sudo journalctl -u ytmusic-bot -n 100
+sudo journalctl -u ytmusic_bot -n 100
 ```
 
 ✅ **Add memory limits (optional):**
 
 ```ini
-# In ytmusic-bot.service
+# In ytmusic_bot.service
 [Service]
 MemoryLimit=512M
 ```
@@ -371,7 +371,7 @@ sudo apt update && sudo apt upgrade -y
 **Symptoms:**
 
 ```
-Failed to start ytmusic-bot.service
+Failed to start ytmusic_bot.service
 ```
 
 **Solutions:**
@@ -379,41 +379,41 @@ Failed to start ytmusic-bot.service
 ✅ **Check service status:**
 
 ```bash
-sudo systemctl status ytmusic-bot
+sudo systemctl status ytmusic_bot
 ```
 
 ✅ **Check service file syntax:**
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl start ytmusic-bot
-sudo journalctl -u ytmusic-bot -n 50
+sudo systemctl start ytmusic_bot
+sudo journalctl -u ytmusic_bot -n 50
 ```
 
 ✅ **Verify paths:**
 
 ```bash
 # Check if files exist
-ls -la /home/ubuntu/ytmusic-bot/ytmusic_interactive_bot.py
+ls -la /home/ubuntu/Play-Youtube-In-CLI/main.py
 ls -la /usr/bin/python3
 
 # Check permissions
-ls -la /home/ubuntu/ytmusic-bot/
+ls -la /home/ubuntu/Play-Youtube-In-CLI/
 ```
 
 ✅ **Test manual run:**
 
 ```bash
-cd /home/ubuntu/ytmusic-bot
-python3 ytmusic_interactive_bot.py
+cd /home/ubuntu/Play-Youtube-In-CLI
+python3 main.py
 # If works manually, check service user/permissions
 ```
 
 ✅ **Fix permissions:**
 
 ```bash
-sudo chown -R ubuntu:ubuntu /home/ubuntu/ytmusic-bot
-chmod +x /home/ubuntu/ytmusic-bot/ytmusic_interactive_bot.py
+sudo chown -R ubuntu:ubuntu /home/ubuntu/Play-Youtube-In-CLI
+chmod +x /home/ubuntu/Play-Youtube-In-CLI/main.py
 ```
 
 ---
@@ -430,7 +430,7 @@ chmod +x /home/ubuntu/ytmusic-bot/ytmusic_interactive_bot.py
 ✅ **Check logs:**
 
 ```bash
-sudo journalctl -u ytmusic-bot -f
+sudo journalctl -u ytmusic_bot -f
 # Click button and watch for errors
 ```
 
@@ -452,7 +452,7 @@ application.add_handler(CallbackQueryHandler(button_callback))
 ✅ **Restart bot:**
 
 ```bash
-sudo systemctl restart ytmusic-bot
+sudo systemctl restart ytmusic_bot
 ```
 
 ---
@@ -495,16 +495,16 @@ yt-dlp --flat-playlist "https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4s
 
 ```bash
 # View all logs
-sudo journalctl -u ytmusic-bot --no-pager
+sudo journalctl -u ytmusic_bot --no-pager
 
 # View recent errors
-sudo journalctl -u ytmusic-bot -p err
+sudo journalctl -u ytmusic_bot -p err
 
 # Follow logs real-time
-sudo journalctl -u ytmusic-bot -f
+sudo journalctl -u ytmusic_bot -f
 
 # Export logs to file
-sudo journalctl -u ytmusic-bot > bot_logs.txt
+sudo journalctl -u ytmusic_bot > bot_logs.txt
 ```
 
 ---
@@ -514,7 +514,7 @@ sudo journalctl -u ytmusic-bot > bot_logs.txt
 Enable debug logging:
 
 ```python
-# At top of ytmusic_interactive_bot.py
+# At top of main.py
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.DEBUG  # Change from INFO to DEBUG
@@ -527,8 +527,8 @@ logging.getLogger("httpx").setLevel(logging.DEBUG)
 Run bot manually to see all debug output:
 
 ```bash
-cd ~/ytmusic-bot
-python3 ytmusic_interactive_bot.py
+cd ~/ytmusic_bot
+python3 main.py
 ```
 
 ---
@@ -575,16 +575,16 @@ pip3 install python-telegram-bot yt-dlp
 
 ```bash
 # Check file ownership
-ls -la ~/ytmusic-bot/
+ls -la ~/Play-Youtube-In-CLI/
 
 # Fix ownership
-sudo chown -R $USER:$USER ~/ytmusic-bot/
+sudo chown -R $USER:$USER ~/Play-Youtube-In-CLI/
 
 # Check executable permission
-chmod +x ~/ytmusic-bot/ytmusic_interactive_bot.py
+chmod +x ~/Play-Youtube-In-CLI/main.py
 
 # Check service permissions
-sudo cat /etc/systemd/system/ytmusic-bot.service
+sudo cat /etc/systemd/system/ytmusic_bot.service
 ```
 
 ### Process Management
@@ -594,7 +594,7 @@ sudo cat /etc/systemd/system/ytmusic-bot.service
 ps aux | grep ytmusic
 
 # Kill all bot processes
-pkill -f ytmusic_interactive_bot.py
+pkill -f main.py
 
 # Kill all mpv processes
 pkill mpv
@@ -631,7 +631,7 @@ When asking for help, provide:
 1. **Error message:**
 
 ```bash
-sudo journalctl -u ytmusic-bot -n 50
+sudo journalctl -u ytmusic_bot -n 50
 ```
 
 2. **System info:**
@@ -683,13 +683,13 @@ Send this report when asking for help.
 
 ```bash
 # Nuclear option: Complete reinstall
-sudo systemctl stop ytmusic-bot
-pkill -f ytmusic_interactive_bot.py
+sudo systemctl stop ytmusic_bot
+pkill -f main.py
 pkill mpv
-cd ~/ytmusic-bot
+cd ~/ytmusic_bot
 pip3 install --upgrade --force-reinstall python-telegram-bot yt-dlp
-sudo systemctl start ytmusic-bot
-sudo journalctl -u ytmusic-bot -f
+sudo systemctl start ytmusic_bot
+sudo journalctl -u ytmusic_bot -f
 ```
 
 ---
@@ -703,3 +703,5 @@ sudo journalctl -u ytmusic-bot -f
 5. Check GitHub issues (if applicable)
 
 **Good luck! 🍀**
+
+
