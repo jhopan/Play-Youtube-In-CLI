@@ -23,6 +23,10 @@ TOKEN = os.getenv('BOT_TOKEN', '')
 _user_ids = os.getenv('ALLOWED_USER_IDS', '')
 ALLOWED_USERS = [int(uid.strip()) for uid in _user_ids.split(',') if uid.strip()]
 
+# YouTube Suggestions Feature
+# Enable/disable YouTube suggestions when queue finishes
+ENABLE_YOUTUBE_SUGGESTIONS = os.getenv('ENABLE_YOUTUBE_SUGGESTIONS', 'false').lower() == 'true'
+
 # ============================================================================
 # LOGGING CONFIGURATION
 # ============================================================================

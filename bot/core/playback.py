@@ -103,11 +103,14 @@ class PlaybackManager:
         """
         Handle when a song finishes playing
         Auto-plays next song immediately (no countdown dialog)
-        Shows YouTube suggestions when queue finishes
+        Auto-loops playlist when queue finishes
+        Optionally shows YouTube suggestions if enabled
         
         Args:
             application: Telegram application instance
         """
+        from ..config import ENABLE_YOUTUBE_SUGGESTIONS
+        
         # Prevent rapid consecutive calls
         if not player.is_playing:
             return
@@ -127,9 +130,33 @@ class PlaybackManager:
                 await asyncio.sleep(0.5)  # Small delay for smooth transition
                 await PlaybackManager.play_next(application)
             else:
-                # Queue finished - get YouTube suggestions
-                logger.info("📺 Queue finished - fetching YouTube suggestions")
-                await PlaybackManager.show_suggestions_dialog(application)
+                # Queue finished - auto-loop playlist from beginning
+                logger.info("� Queue finished - restarting playlist from beginning")
+                player.current_index = 0
+                
+                # Notify user
+                if player.owner_id:
+                    try:
+                        await application.bot.send_message(
+                            chat_id=player.owner_id,
+                            text=(
+                                f"🔄 <b>Playlist Finished!</b>\n\n"
+                                f"♾️ Auto-restarting from beginning...\n"
+                                f"📀 Total songs: {len(player.playlist)}\n\n"
+                                f"Use /stop to stop playback."
+                            ),
+                            parse_mode="HTML"
+                        )
+                    except Exception as e:
+                        logger.error(f"Error sending notification: {e}")
+                
+                await asyncio.sleep(1)
+                await PlaybackManager.play_current_song(application)
+                
+                # Optional: Show YouTube suggestions if enabled
+                if ENABLE_YOUTUBE_SUGGESTIONS:
+                    logger.info("📺 YouTube suggestions enabled - will show after this loop")
+                    # Note: Suggestions disabled by default for stability
     
     @staticmethod
     async def show_auto_next_dialog(application: Application, countdown_seconds: int = 5):
@@ -335,15 +362,24 @@ class PlaybackManager:
         """
         Show YouTube suggestions dialog when queue is empty
         Gets related videos and asks user if they want to continue
+        NOTE: Disabled by default for stability - use ENABLE_YOUTUBE_SUGGESTIONS=true to enable
         
         Args:
             application: Telegram application instance
         """
         from ..utils.keyboards import Keyboards
         from .youtube import YouTubeExtractor
+        from ..config import ENABLE_YOUTUBE_SUGGESTIONS
+        
+        if not ENABLE_YOUTUBE_SUGGESTIONS:
+            logger.info("⚠️ YouTube suggestions disabled - use auto-loop instead")
+            return
         
         if not player.owner_id or not player.current_song:
+            logger.warning("⚠️ Cannot show suggestions - no owner or current song")
             return
+        
+        logger.info("🎬 Starting YouTube suggestions fetch...")
         
         try:
             # Get related videos from YouTube with timeout
@@ -351,21 +387,30 @@ class PlaybackManager:
             
             # Run in executor with timeout to prevent blocking
             import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                try:
+            suggestions = []
+            
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    logger.info("🔄 Submitting fetch task to executor...")
                     future = executor.submit(
                         YouTubeExtractor.get_related_videos,
                         player.current_song.url,
                         3  # Get top 3 suggestions
                     )
+                    
+                    logger.info("⏱️ Waiting for results (timeout: 15s)...")
                     # Wait max 15 seconds for suggestions
                     suggestions = future.result(timeout=15)
-                except concurrent.futures.TimeoutError:
-                    logger.error("⏱️ Timeout fetching suggestions (15s)")
-                    suggestions = []
-                except Exception as e:
-                    logger.error(f"❌ Error in suggestion fetch: {e}")
-                    suggestions = []
+                    logger.info(f"✅ Received {len(suggestions)} suggestions")
+                    
+            except concurrent.futures.TimeoutError:
+                logger.error("⏱️ Timeout fetching suggestions (15s) - skipping")
+                suggestions = []
+            except Exception as e:
+                logger.error(f"❌ Error in suggestion fetch: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                suggestions = []
             
             if not suggestions:
                 # No suggestions found - stop playback
@@ -404,6 +449,7 @@ class PlaybackManager:
                 reply_markup=Keyboards.suggestion_dialog(),
                 parse_mode="HTML"
             )
+            logger.info("✅ Suggestion message sent successfully")
             
             # Create auto-play countdown task
             async def countdown_task():
@@ -435,9 +481,10 @@ class PlaybackManager:
             # Store task in bot_data so it can be cancelled
             task = asyncio.create_task(countdown_task())
             application.bot_data['suggestion_task'] = task
+            logger.info("✅ Countdown task started")
             
         except Exception as e:
-            logger.error(f"❌ Error showing suggestions: {e}")
+            logger.error(f"❌ CRITICAL Error showing suggestions: {e}")
             import traceback
             logger.error(traceback.format_exc())
             
@@ -450,5 +497,5 @@ class PlaybackManager:
                         text="🎵 Queue finished! Use Menu to load more music. 🎶",
                         parse_mode="HTML"
                     )
-                except:
-                    pass
+                except Exception as e2:
+                    logger.error(f"Failed to send fallback message: {e2}")
