@@ -17,8 +17,9 @@ from ..config import MPV_OPTIONS
 
 logger = logging.getLogger(__name__)
 
-# IPC socket path
-IPC_SOCKET = "/tmp/mpvsocket"
+# IPC socket path - use user-specific path to avoid permission issues
+import getpass
+IPC_SOCKET = f"/tmp/mpvsocket_{getpass.getuser()}_{os.getpid()}"
 
 
 class MPVPlayer:
@@ -39,7 +40,13 @@ class MPVPlayer:
         try:
             # Remove old socket if exists
             if os.path.exists(IPC_SOCKET):
-                os.remove(IPC_SOCKET)
+                try:
+                    os.remove(IPC_SOCKET)
+                    logger.debug(f"Removed old socket: {IPC_SOCKET}")
+                except PermissionError:
+                    logger.warning(f"Could not remove old socket (permission denied), trying anyway...")
+                except Exception as e:
+                    logger.warning(f"Error removing socket: {e}")
             
             # Build command
             cmd = ['mpv']
@@ -102,6 +109,14 @@ class MPVPlayer:
                 logger.error(f"Error stopping mpv: {e}")
             finally:
                 player.mpv_process = None
+                
+                # Clean up socket file
+                if os.path.exists(IPC_SOCKET):
+                    try:
+                        os.remove(IPC_SOCKET)
+                        logger.debug(f"Cleaned up socket: {IPC_SOCKET}")
+                    except Exception as e:
+                        logger.debug(f"Could not remove socket: {e}")
     
     @staticmethod
     def pause():
