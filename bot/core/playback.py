@@ -137,27 +137,9 @@ class PlaybackManager:
                     logger.info("📺 Queue finished - fetching YouTube suggestions")
                     await PlaybackManager.show_suggestions_dialog(application)
                 else:
-                    # Auto-loop playlist
-                    logger.info("🔄 Queue finished - restarting from beginning")
-                    player.current_index = 0
-                    
-                    if player.owner_id:
-                        try:
-                            await application.bot.send_message(
-                                chat_id=player.owner_id,
-                                text=(
-                                    f"🔄 <b>Playlist Finished!</b>\n\n"
-                                    f"♾️ Auto-restarting from beginning...\n"
-                                    f"📀 Total: {len(player.playlist)} songs\n\n"
-                                    f"💡 Enable YouTube Suggestions in Settings!"
-                                ),
-                                parse_mode="HTML"
-                            )
-                        except Exception as e:
-                            logger.error(f"Error: {e}")
-                    
-                    await asyncio.sleep(1)
-                    await PlaybackManager.play_current_song(application)
+                    # Ask user if want to loop playlist
+                    logger.info("🔄 Queue finished - asking user")
+                    await PlaybackManager.show_loop_confirmation(application)
         """
         Handle when a song finishes playing
         Auto-plays next song immediately (no countdown dialog)
@@ -287,6 +269,74 @@ class PlaybackManager:
             # Fallback - just play next
             await asyncio.sleep(1)
             await PlaybackManager.play_next(application)
+    
+    @staticmethod
+    async def show_loop_confirmation(application: Application, countdown_seconds: int = 10):
+        """
+        Show loop confirmation dialog when playlist finishes
+        Ask user if they want to replay playlist
+        
+        Args:
+            application: Telegram application instance
+            countdown_seconds: Seconds before auto-looping (default 10)
+        """
+        from ..utils.keyboards import Keyboards
+        
+        if not player.owner_id or not player.playlist:
+            return
+        
+        try:
+            # Send message with countdown
+            message_text = (
+                f"🎵 <b>Playlist Finished!</b>\n\n"
+                f"📀 Total songs: {len(player.playlist)}\n"
+                f"🔄 Replay from beginning?\n\n"
+                f"⏱️ Auto-replay in <b>{countdown_seconds}</b> seconds..."
+            )
+            
+            message = await application.bot.send_message(
+                chat_id=player.owner_id,
+                text=message_text,
+                reply_markup=Keyboards.loop_confirmation_dialog(),
+                parse_mode="HTML"
+            )
+            
+            logger.info(f"📢 Loop confirmation dialog shown ({countdown_seconds}s countdown)")
+            
+            # Create countdown task
+            async def countdown_task():
+                for remaining in range(countdown_seconds - 1, 0, -1):
+                    await asyncio.sleep(1)
+                    try:
+                        new_text = message_text.replace(str(countdown_seconds), str(remaining))
+                        await message.edit_text(
+                            new_text,
+                            reply_markup=Keyboards.loop_confirmation_dialog(),
+                            parse_mode="HTML"
+                        )
+                    except Exception:
+                        pass
+                
+                # Final countdown - loop playlist
+                await asyncio.sleep(1)
+                if player.is_playing:  # Check if not stopped
+                    logger.info("⏩ Auto-loop countdown finished - restarting playlist")
+                    player.current_index = 0
+                    await PlaybackManager.play_current_song(application)
+                    
+                    # Clean up
+                    application.bot_data.pop('loop_task', None)
+            
+            # Store task so it can be cancelled
+            task = asyncio.create_task(countdown_task())
+            application.bot_data['loop_task'] = task
+            
+        except Exception as e:
+            logger.error(f"❌ Error showing loop confirmation: {e}")
+            # Fallback - just loop
+            await asyncio.sleep(1)
+            player.current_index = 0
+            await PlaybackManager.play_current_song(application)
     
     @staticmethod
     async def play_next(application: Application) -> bool:
@@ -420,7 +470,6 @@ class PlaybackManager:
         """
         Show YouTube suggestions dialog when queue is empty
         Gets related videos and asks user if they want to continue
-        NOTE: Disabled by default for stability - use ENABLE_YOUTUBE_SUGGESTIONS=true to enable
         
         Args:
             application: Telegram application instance
@@ -433,31 +482,37 @@ class PlaybackManager:
             logger.info("⚠️ YouTube suggestions disabled - use auto-loop instead")
             return
         
-        if not player.owner_id or not player.current_song:
-            logger.warning("⚠️ Cannot show suggestions - no owner or current song")
+        if not player.owner_id:
+            logger.warning("⚠️ Cannot show suggestions - no owner")
             return
         
-        logger.info("🎬 Starting YouTube suggestions fetch...")
+        # Get last played song for suggestions
+        if not player.playlist:
+            logger.warning("⚠️ No playlist available for suggestions")
+            return
+        
+        # Use last song in playlist for suggestions
+        last_song = player.playlist[-1]
+        logger.info(f"🎬 Using last song for suggestions: {last_song.title}")
         
         # Send "Searching..." notification to user
         search_message = None
-        if player.owner_id:
-            try:
-                search_message = await application.bot.send_message(
-                    chat_id=player.owner_id,
-                    text=(
-                        f"🔍 <b>Searching for suggestions...</b>\n\n"
-                        f"📺 Finding related videos on YouTube...\n"
-                        f"⏱️ Please wait..."
-                    ),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Error sending search notification: {e}")
+        try:
+            search_message = await application.bot.send_message(
+                chat_id=player.owner_id,
+                text=(
+                    f"🔍 <b>Searching for suggestions...</b>\n\n"
+                    f"📺 Finding related videos on YouTube...\n"
+                    f"⏱️ Please wait up to 30 seconds..."
+                ),
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.error(f"Error sending search notification: {e}")
         
         try:
             # Get related videos from YouTube with timeout
-            logger.info(f"🔍 Fetching suggestions for: {player.current_song.title}")
+            logger.info(f"🔍 Fetching suggestions for: {last_song.title}")
             
             # Run in executor with timeout to prevent blocking
             import concurrent.futures
@@ -468,17 +523,17 @@ class PlaybackManager:
                     logger.info("🔄 Submitting fetch task to executor...")
                     future = executor.submit(
                         YouTubeExtractor.get_related_videos,
-                        player.current_song.url,
+                        last_song.url,
                         3  # Get top 3 suggestions
                     )
                     
-                    logger.info("⏱️ Waiting for results (timeout: 15s)...")
-                    # Wait max 15 seconds for suggestions
-                    suggestions = future.result(timeout=15)
+                    logger.info("⏱️ Waiting for results (timeout: 30s)...")
+                    # Wait max 30 seconds for suggestions
+                    suggestions = future.result(timeout=30)
                     logger.info(f"✅ Received {len(suggestions)} suggestions")
                     
             except concurrent.futures.TimeoutError:
-                logger.error("⏱️ Timeout fetching suggestions (15s) - skipping")
+                logger.error("⏱️ Timeout fetching suggestions (30s) - skipping")
                 suggestions = []
             except Exception as e:
                 logger.error(f"❌ Error in suggestion fetch: {e}")

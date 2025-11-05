@@ -49,7 +49,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Route to appropriate handler
     handlers = {
         "load_playlist": handle_load_playlist,
-        "load_video": handle_load_video,
         "play_pause": handle_play_pause,
         "next": handle_next,
         "prev": handle_prev,
@@ -58,10 +57,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "toggle_shuffle": handle_toggle_shuffle,
         "volume": handle_volume_menu,
         "show_queue": handle_show_queue,
+        "clear_queue": handle_clear_queue,
         "show_info": handle_show_info,
         "show_settings": handle_show_settings,
         "toggle_yt_suggestions": handle_toggle_yt_suggestions,
         "back_to_main": handle_back_to_main,
+        "loop_continue": handle_loop_continue,
+        "loop_stop": handle_loop_stop,
         "auto_next_continue": handle_auto_next_continue,
         "auto_next_stop": handle_auto_next_stop,
         "suggestion_play": handle_suggestion_play,
@@ -92,18 +94,6 @@ async def handle_load_playlist(query, context):
         parse_mode="HTML"
     )
     logger.info(f"📋 @{username} requested to load playlist - waiting for URL")
-
-
-async def handle_load_video(query, context):
-    """Handle load video request"""
-    username = query.from_user.username or query.from_user.first_name
-    context.user_data['waiting_for'] = 'video'
-    await query.edit_message_text(
-        f"{EMOJI['video']} <b>Load Video</b>\n\n"
-        f"Please send me a YouTube video URL:",
-        parse_mode="HTML"
-    )
-    logger.info(f"🎥 @{username} requested to load video - waiting for URL")
 
 
 async def handle_play_pause(query, context):
@@ -577,4 +567,76 @@ async def handle_toggle_yt_suggestions(query, context):
     )
     
     logger.info(f"🔄 @{username} {status} YouTube suggestions")
+
+
+async def handle_clear_queue(query, context):
+    """Handle clear queue request"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    if not player.playlist:
+        await query.answer("Queue is already empty", show_alert=True)
+        return
+    
+    # Stop playback
+    PlaybackManager.stop()
+    
+    # Clear playlist
+    playlist_count = len(player.playlist)
+    player.playlist.clear()
+    player.current_index = 0
+    player.is_playing = False
+    
+    await query.edit_message_text(
+        f"🗑️ <b>Queue Cleared!</b>\n\nRemoved {playlist_count} songs from queue.",
+        reply_markup=Keyboards.main_menu(),
+        parse_mode="HTML"
+    )
+    
+    logger.info(f"🗑️ @{username} cleared queue ({playlist_count} songs)")
+
+
+async def handle_loop_continue(query, context):
+    """Handle loop confirmation - continue playing"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Cancel loop timer if exists
+    if 'loop_task' in context.bot_data:
+        context.bot_data['loop_task'].cancel()
+        del context.bot_data['loop_task']
+    
+    # Restart playlist
+    player.current_index = 0
+    player.is_playing = True
+    
+    await query.edit_message_text(
+        f"🔄 <b>Restarting Playlist...</b>",
+        parse_mode="HTML"
+    )
+    
+    asyncio.create_task(PlaybackManager.play_current_song(context.application))
+    
+    logger.info(f"🔄 @{username} manually restarted playlist")
+
+
+async def handle_loop_stop(query, context):
+    """Handle loop confirmation - stop playback"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Cancel loop timer if exists
+    if 'loop_task' in context.bot_data:
+        context.bot_data['loop_task'].cancel()
+        del context.bot_data['loop_task']
+    
+    # Stop playback
+    PlaybackManager.stop()
+    player.is_playing = False
+    
+    await query.edit_message_text(
+        f"{EMOJI['stop']} <b>Playback stopped</b>\n\nUse Menu to load more music!",
+        reply_markup=Keyboards.main_menu(),
+        parse_mode="HTML"
+    )
+    
+    logger.info(f"⏹️ @{username} stopped playback via loop dialog")
+
 

@@ -27,15 +27,15 @@ class Keyboards:
             play_pause_text = "Play"
         
         keyboard = [
-            # Row 1: Load options
+            # Row 1: Load Playlist and Clear Queue
             [
                 InlineKeyboardButton(
                     f"{EMOJI['playlist']} Load Playlist",
                     callback_data="load_playlist"
                 ),
                 InlineKeyboardButton(
-                    f"{EMOJI['video']} Load Video",
-                    callback_data="load_video"
+                    "🗑️ Clear Queue",
+                    callback_data="clear_queue"
                 ),
             ],
             # Row 2: Main playback controls
@@ -60,14 +60,14 @@ class Keyboards:
                     callback_data="stop"
                 ),
             ],
-            # Row 4: Modes
+            # Row 4: Modes with status
             [
                 InlineKeyboardButton(
-                    f"{loop_emoji} Loop",
+                    f"{loop_emoji} Loop {'✅' if player.loop_enabled else ''}",
                     callback_data="toggle_loop"
                 ),
                 InlineKeyboardButton(
-                    f"{shuffle_emoji} Shuffle",
+                    f"{shuffle_emoji} Shuffle {'✅' if player.shuffle_enabled else ''}",
                     callback_data="toggle_shuffle"
                 ),
             ],
@@ -119,6 +119,24 @@ class Keyboards:
             [
                 InlineKeyboardButton("🔇 Mute/Unmute", callback_data="vol_mute"),
                 InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def loop_confirmation_dialog() -> InlineKeyboardMarkup:
+        """Keyboard for loop confirmation dialog"""
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "🔄 Replay Playlist",
+                    callback_data="loop_continue"
+                ),
+                InlineKeyboardButton(
+                    "⏹️ Stop",
+                    callback_data="loop_stop"
+                ),
             ],
         ]
         
