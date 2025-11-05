@@ -147,6 +147,8 @@ async def handle_next(query, context):
         logger.warning(f"⚠️ @{username} tried to skip but playlist is empty")
         return
     
+    # Keep playing state active for auto-play
+    player.is_playing = True
     asyncio.create_task(PlaybackManager.play_next(context.application))
     
     await query.edit_message_text(
@@ -165,6 +167,8 @@ async def handle_prev(query, context):
         logger.warning(f"⚠️ @{username} tried to go back but playlist is empty")
         return
     
+    # Keep playing state active for auto-play
+    player.is_playing = True
     asyncio.create_task(PlaybackManager.play_previous(context.application))
     
     await query.edit_message_text(

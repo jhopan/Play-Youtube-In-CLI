@@ -104,7 +104,7 @@ class Keyboards:
             ],
             # Row 2: Preset levels
             [
-                InlineKeyboardButton("� 25%", callback_data="vol_25"),
+                InlineKeyboardButton("🔈 25%", callback_data="vol_25"),
                 InlineKeyboardButton("🔉 50%", callback_data="vol_50"),
             ],
             [

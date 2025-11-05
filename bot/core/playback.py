@@ -56,12 +56,19 @@ class PlaybackManager:
             # Notify user
             if player.owner_id:
                 try:
+                    # Create visual progress bar
+                    total = len(player.playlist)
+                    current = player.current_index + 1
+                    progress = "▰" * current + "▱" * (total - current) if total <= 20 else f"{current}/{total}"
+                    
                     await application.bot.send_message(
                         chat_id=player.owner_id,
                         text=(
-                            f"{EMOJI['now_playing']} <b>Now Playing:</b>\n"
-                            f"{current_song.title}\n\n"
-                            f"📊 {player.current_index + 1}/{len(player.playlist)}"
+                            f"{EMOJI['now_playing']} <b>Now Playing:</b>\n\n"
+                            f"🎵 <b>{current_song.title}</b>\n"
+                            f"⏱️ {current_song.duration}\n\n"
+                            f"📊 Position: {current}/{total}\n"
+                            f"▰▱ {progress}"
                         ),
                         parse_mode="HTML"
                     )
