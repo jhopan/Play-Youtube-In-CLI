@@ -19,9 +19,10 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 
 - **🔁 Loop Mode** - Ulangi satu lagu terus-menerus
 - **🔀 Shuffle Mode** - Acak urutan pemutaran
-- **🔊 Volume Control** - 4 level volume (25%, 50%, 75%, 100%)
+- **🔊 Volume Control** - Real-time volume (+10/-10, preset, mute)
 - **📜 Queue Display** - Lihat 10 lagu teratas di playlist
-- **Auto-Next** - Otomatis lanjut ke lagu berikutnya
+- **⏱️ Auto-Next Dialog** - YouTube-like countdown (5 detik)
+- **ℹ️ Info Display** - Status bot & song details lengkap
 
 ### 🛡️ Security & Stability
 
@@ -37,6 +38,7 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 - **Real-time Notifications** - Notifikasi saat lagu berganti
 - **HTML Formatting** - Tampilan rapi dengan emoji
 - **Responsive** - Menggunakan asyncio untuk performa optimal
+- **📊 Enhanced Logging** - Terminal logs dengan emoji, user tracking, event details
 
 ## 🏗️ Architecture
 
