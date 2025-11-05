@@ -2,6 +2,83 @@
 
 All notable changes to YouTube Music Telegram Bot will be documented in this file.
 
+## [2.2.0] - 2024-12-19
+
+### 📊 Enhanced Logging System
+
+#### ✨ New Features
+
+- **Detailed User Activity Logging** 👤
+  - Shows username, user ID, and full name for all interactions
+  - Logs every button click with action details
+  - Tracks command usage with user attribution
+  - Access control violations logged with user info
+  
+- **Playback Event Logging** 🎵
+  - Song start/finish with title and position
+  - Auto-next countdown events
+  - Loop/shuffle mode changes with user info
+  - MPV process status and exit codes
+
+- **Volume Control Logging** 🔊
+  - Volume changes show old → new values
+  - Volume menu interactions tracked
+  - Mute/unmute events logged
+  - Volume control failures logged with user
+
+- **URL Processing Logging** 🔗
+  - URL submissions logged with source
+  - Playlist loading progress (count, total)
+  - Video addition with title and position
+  - Invalid URL warnings with user info
+
+- **Visual Log Formatting** ✨
+  - Emoji prefixes for easy scanning:
+    - 🚀 Bot startup/shutdown
+    - 📞 Commands received
+    - 🎯 Button interactions
+    - 🎵 Song playback
+    - 🔊 Volume changes
+    - 🔗 URL processing
+    - ⚠️ Warnings
+    - ❌ Errors
+    - ✅ Success events
+
+- **Third-Party Logger Suppression**
+  - Disabled noisy httpx/httpcore logs
+  - Disabled telegram library logs
+  - Only bot activity visible in terminal
+  - Cleaner, more meaningful output
+
+#### 📝 Example Log Output
+
+```
+2024-12-19 10:30:00 - INFO - 🚀 Bot is now running!
+2024-12-19 10:30:15 - INFO - 📞 /start command received from @john (ID: 123456789)
+2024-12-19 10:30:20 - INFO - 🎯 Button clicked by @john: 'play_pause'
+2024-12-19 10:30:20 - INFO - ▶️ @john started playback
+2024-12-19 10:30:20 - INFO - 🎵 Now playing: 'Song Title' [1/10]
+2024-12-19 10:31:00 - INFO - 🎯 Button clicked by @john: 'vol_up'
+2024-12-19 10:31:00 - INFO - 🔊 @john increased volume: 50% → 60%
+```
+
+#### 🔧 Technical Details
+
+- All handlers enhanced with user tracking
+- Logger names standardized across modules
+- Log format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
+- Third-party loggers set to WARNING level
+- Comprehensive error logging with context
+
+#### 📚 Documentation
+
+- New guide: `docs/ENHANCED_LOGGING.md`
+- Complete emoji reference
+- Log level configuration
+- Troubleshooting guide
+
+---
+
 ## [2.1.0] - 2024-12-19
 
 ### 🎨 UI Enhancements
