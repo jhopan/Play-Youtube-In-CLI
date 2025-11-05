@@ -346,12 +346,26 @@ class PlaybackManager:
             return
         
         try:
-            # Get related videos from YouTube
+            # Get related videos from YouTube with timeout
             logger.info(f"🔍 Fetching suggestions for: {player.current_song.title}")
-            suggestions = YouTubeExtractor.get_related_videos(
-                player.current_song.url,
-                count=3  # Get top 3 suggestions
-            )
+            
+            # Run in executor with timeout to prevent blocking
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                try:
+                    future = executor.submit(
+                        YouTubeExtractor.get_related_videos,
+                        player.current_song.url,
+                        3  # Get top 3 suggestions
+                    )
+                    # Wait max 15 seconds for suggestions
+                    suggestions = future.result(timeout=15)
+                except concurrent.futures.TimeoutError:
+                    logger.error("⏱️ Timeout fetching suggestions (15s)")
+                    suggestions = []
+                except Exception as e:
+                    logger.error(f"❌ Error in suggestion fetch: {e}")
+                    suggestions = []
             
             if not suggestions:
                 # No suggestions found - stop playback
@@ -374,18 +388,19 @@ class PlaybackManager:
             
             # Store suggestions in bot_data for callback
             application.bot_data['suggestions'] = suggestions
-            application.bot_data['current_suggestion_index'] = 0
+            application.bot_data['suggestion_index'] = 0
             
-            # Send suggestion message
-            await application.bot.send_message(
+            # Send suggestion message with countdown
+            message_text = (
+                f"🎵 <b>Queue Finished!</b>\n\n"
+                f"📺 <b>Suggested Video:</b>\n"
+                f"🎵 {next_song.title}\n\n"
+                f"⏱️ Auto-play in <b>10</b> seconds..."
+            )
+            
+            message = await application.bot.send_message(
                 chat_id=player.owner_id,
-                text=(
-                    f"🎵 <b>Queue Finished!</b>\n\n"
-                    f"🎬 <b>Suggested Video:</b>\n"
-                    f"{next_song.title}\n\n"
-                    f"⏱️ Continue playing?\n"
-                    f"Auto-play in 10 seconds..."
-                ),
+                text=message_text,
                 reply_markup=Keyboards.suggestion_dialog(),
                 parse_mode="HTML"
             )
@@ -394,15 +409,28 @@ class PlaybackManager:
             async def countdown_task():
                 for remaining in range(9, 0, -1):
                     await asyncio.sleep(1)
+                    try:
+                        new_text = message_text.replace("10", str(remaining))
+                        await message.edit_text(
+                            new_text,
+                            reply_markup=Keyboards.suggestion_dialog(),
+                            parse_mode="HTML"
+                        )
+                    except Exception:
+                        pass
                 
                 # Final countdown - auto-play suggestion
                 await asyncio.sleep(1)
                 if player.is_playing:  # Check if not manually stopped
                     logger.info("⏩ Auto-playing YouTube suggestion")
                     # Add suggestion to playlist and play
-                    player.playlist.append(next_song)
-                    player.current_index = len(player.playlist) - 1
+                    player.add_song(next_song)
                     await PlaybackManager.play_current_song(application)
+                    
+                    # Clean up
+                    application.bot_data.pop('suggestions', None)
+                    application.bot_data.pop('suggestion_index', None)
+                    application.bot_data.pop('suggestion_task', None)
             
             # Store task in bot_data so it can be cancelled
             task = asyncio.create_task(countdown_task())
@@ -410,11 +438,17 @@ class PlaybackManager:
             
         except Exception as e:
             logger.error(f"❌ Error showing suggestions: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            
             # Fallback - just stop
             player.is_playing = False
             if player.owner_id:
-                await application.bot.send_message(
-                    chat_id=player.owner_id,
-                    text="🎵 Queue finished! Use Menu to load more music. 🎶",
-                    parse_mode="HTML"
-                )
+                try:
+                    await application.bot.send_message(
+                        chat_id=player.owner_id,
+                        text="🎵 Queue finished! Use Menu to load more music. 🎶",
+                        parse_mode="HTML"
+                    )
+                except:
+                    pass
