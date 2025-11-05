@@ -95,8 +95,8 @@ class PlaybackManager:
     async def handle_song_finished(application: Application):
         """
         Handle when a song finishes playing
-        Decides whether to loop, go to next, or get YouTube suggestions
-        Shows auto-next dialog with countdown
+        Auto-plays next song immediately (no countdown dialog)
+        Shows YouTube suggestions when queue finishes
         
         Args:
             application: Telegram application instance
@@ -115,9 +115,10 @@ class PlaybackManager:
             next_index = player.current_index + 1
             
             if next_index < len(player.playlist):
-                # Has next song in queue - show normal auto-next dialog
-                logger.info("⏱️ Showing auto-next dialog (5 second countdown)")
-                await PlaybackManager.show_auto_next_dialog(application)
+                # Has next song in queue - auto-play immediately
+                logger.info(f"⏩ Auto-playing next song ({next_index + 1}/{len(player.playlist)})")
+                await asyncio.sleep(0.5)  # Small delay for smooth transition
+                await PlaybackManager.play_next(application)
             else:
                 # Queue finished - get YouTube suggestions
                 logger.info("📺 Queue finished - fetching YouTube suggestions")

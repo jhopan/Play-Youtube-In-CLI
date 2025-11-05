@@ -246,15 +246,28 @@ class MPVPlayer:
             True if successful
         """
         try:
+            # Try with PulseAudio first
             cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', f'{step}%+']
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
             
             if result.returncode == 0:
-                logger.info(f"Increased volume by {step}%")
+                logger.info(f"✅ Increased volume by {step}% (PulseAudio)")
                 return True
+            
+            # Fallback to direct ALSA if PulseAudio fails
+            logger.warning(f"PulseAudio failed, trying ALSA directly. Error: {result.stderr}")
+            cmd = ['amixer', 'sset', 'Master', f'{step}%+']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0:
+                logger.info(f"✅ Increased volume by {step}% (ALSA)")
+                return True
+            
+            logger.error(f"❌ Both methods failed. ALSA error: {result.stderr}")
             return False
+            
         except Exception as e:
-            logger.error(f"Error increasing volume: {e}")
+            logger.error(f"❌ Exception increasing volume: {e}")
             return False
     
     @staticmethod
@@ -269,15 +282,28 @@ class MPVPlayer:
             True if successful
         """
         try:
+            # Try with PulseAudio first
             cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', f'{step}%-']
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
             
             if result.returncode == 0:
-                logger.info(f"Decreased volume by {step}%")
+                logger.info(f"✅ Decreased volume by {step}% (PulseAudio)")
                 return True
+            
+            # Fallback to direct ALSA if PulseAudio fails
+            logger.warning(f"PulseAudio failed, trying ALSA directly. Error: {result.stderr}")
+            cmd = ['amixer', 'sset', 'Master', f'{step}%-']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0:
+                logger.info(f"✅ Decreased volume by {step}% (ALSA)")
+                return True
+            
+            logger.error(f"❌ Both methods failed. ALSA error: {result.stderr}")
             return False
+            
         except Exception as e:
-            logger.error(f"Error decreasing volume: {e}")
+            logger.error(f"❌ Exception decreasing volume: {e}")
             return False
     
     @staticmethod
@@ -289,15 +315,28 @@ class MPVPlayer:
             True if successful
         """
         try:
+            # Try with PulseAudio first
             cmd = ['amixer', '-D', 'pulse', 'sset', 'Master', 'toggle']
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
             
             if result.returncode == 0:
-                logger.info("Toggled mute")
+                logger.info("✅ Toggled mute (PulseAudio)")
                 return True
+            
+            # Fallback to direct ALSA if PulseAudio fails
+            logger.warning(f"PulseAudio failed, trying ALSA directly. Error: {result.stderr}")
+            cmd = ['amixer', 'sset', 'Master', 'toggle']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            
+            if result.returncode == 0:
+                logger.info("✅ Toggled mute (ALSA)")
+                return True
+            
+            logger.error(f"❌ Both methods failed. ALSA error: {result.stderr}")
             return False
+            
         except Exception as e:
-            logger.error(f"Error toggling mute: {e}")
+            logger.error(f"❌ Exception toggling mute: {e}")
             return False
     
     @staticmethod

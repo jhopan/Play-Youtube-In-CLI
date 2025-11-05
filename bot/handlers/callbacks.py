@@ -268,8 +268,22 @@ async def handle_volume_change(query, context):
     elif vol_action == "mute":
         from ..core.mpv_player import MPVPlayer
         if MPVPlayer.toggle_mute():
+            # Get current mute status from amixer to show accurate state
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ["amixer", "-D", "pulse", "get", "Master"],
+                    capture_output=True,
+                    text=True,
+                    timeout=2
+                )
+                is_muted = "[off]" in result.stdout
+                status_text = "🔇 <b>Muted</b>" if is_muted else "🔊 <b>Unmuted</b>"
+            except:
+                status_text = "🔇/🔊 <b>Mute toggled</b>"
+            
             await query.edit_message_text(
-                f"{EMOJI['volume']} Volume muted/unmuted",
+                f"{EMOJI['volume']} Volume Control\n\n{status_text}",
                 reply_markup=Keyboards.volume_menu(),
                 parse_mode="HTML"
             )
