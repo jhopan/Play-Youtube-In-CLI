@@ -4,7 +4,7 @@ Handles all command interactions (/start, etc.)
 """
 
 import logging
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 
 from ..utils.access_control import AccessControl
@@ -39,9 +39,23 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"   Owner: {'Yes ⭐' if is_owner else 'No'}")
     logger.info("=" * 60)
     
+    # Create persistent menu button
+    menu_keyboard = ReplyKeyboardMarkup(
+        [[KeyboardButton("🎵 Menu")]],
+        resize_keyboard=True,
+        one_time_keyboard=False
+    )
+    
     # Send welcome message
     await update.message.reply_text(
         MessageFormatter.welcome_message(),
+        reply_markup=menu_keyboard,
+        parse_mode="HTML"
+    )
+    
+    # Send inline menu buttons
+    await update.message.reply_text(
+        "Select an action:",
         reply_markup=Keyboards.main_menu(),
         parse_mode="HTML"
     )

@@ -95,7 +95,7 @@ class PlaybackManager:
     async def handle_song_finished(application: Application):
         """
         Handle when a song finishes playing
-        Decides whether to loop, go to next, or stop
+        Decides whether to loop, go to next, or get YouTube suggestions
         Shows auto-next dialog with countdown
         
         Args:
@@ -111,9 +111,17 @@ class PlaybackManager:
             await asyncio.sleep(0.5)  # Small delay before replay
             await PlaybackManager.play_current_song(application)
         else:
-            # Show auto-next dialog with countdown
-            logger.info("⏱️ Showing auto-next dialog (5 second countdown)")
-            await PlaybackManager.show_auto_next_dialog(application)
+            # Check if there's a next song in queue
+            next_index = player.current_index + 1
+            
+            if next_index < len(player.playlist):
+                # Has next song in queue - show normal auto-next dialog
+                logger.info("⏱️ Showing auto-next dialog (5 second countdown)")
+                await PlaybackManager.show_auto_next_dialog(application)
+            else:
+                # Queue finished - get YouTube suggestions
+                logger.info("📺 Queue finished - fetching YouTube suggestions")
+                await PlaybackManager.show_suggestions_dialog(application)
     
     @staticmethod
     async def show_auto_next_dialog(application: Application, countdown_seconds: int = 5):
@@ -313,3 +321,92 @@ class PlaybackManager:
                 logger.warning("Failed to update MPV volume via IPC, will apply on next song")
         
         return True
+    
+    @staticmethod
+    async def show_suggestions_dialog(application: Application):
+        """
+        Show YouTube suggestions dialog when queue is empty
+        Gets related videos and asks user if they want to continue
+        
+        Args:
+            application: Telegram application instance
+        """
+        from ..utils.keyboards import Keyboards
+        from .youtube import YouTubeExtractor
+        
+        if not player.owner_id or not player.current_song:
+            return
+        
+        try:
+            # Get related videos from YouTube
+            logger.info(f"🔍 Fetching suggestions for: {player.current_song.title}")
+            suggestions = YouTubeExtractor.get_related_videos(
+                player.current_song.url,
+                count=3  # Get top 3 suggestions
+            )
+            
+            if not suggestions:
+                # No suggestions found - stop playback
+                logger.warning("⚠️ No suggestions found - stopping playback")
+                player.is_playing = False
+                await application.bot.send_message(
+                    chat_id=player.owner_id,
+                    text=(
+                        f"🎵 <b>Queue Finished!</b>\n\n"
+                        f"No more songs to play.\n"
+                        f"Use Menu button to load more music! 🎶"
+                    ),
+                    parse_mode="HTML"
+                )
+                return
+            
+            # Show first suggestion with options
+            next_song = suggestions[0]
+            logger.info(f"📺 Suggesting: {next_song.title}")
+            
+            # Store suggestions in bot_data for callback
+            application.bot_data['suggestions'] = suggestions
+            application.bot_data['current_suggestion_index'] = 0
+            
+            # Send suggestion message
+            await application.bot.send_message(
+                chat_id=player.owner_id,
+                text=(
+                    f"🎵 <b>Queue Finished!</b>\n\n"
+                    f"🎬 <b>Suggested Video:</b>\n"
+                    f"{next_song.title}\n\n"
+                    f"⏱️ Continue playing?\n"
+                    f"Auto-play in 10 seconds..."
+                ),
+                reply_markup=Keyboards.suggestion_dialog(),
+                parse_mode="HTML"
+            )
+            
+            # Create auto-play countdown task
+            async def countdown_task():
+                for remaining in range(9, 0, -1):
+                    await asyncio.sleep(1)
+                
+                # Final countdown - auto-play suggestion
+                await asyncio.sleep(1)
+                if player.is_playing:  # Check if not manually stopped
+                    logger.info("⏩ Auto-playing YouTube suggestion")
+                    # Add suggestion to playlist and play
+                    player.playlist.append(next_song)
+                    player.current_index = len(player.playlist) - 1
+                    await PlaybackManager.play_current_song(application)
+            
+            # Store task in bot_data so it can be cancelled
+            task = asyncio.create_task(countdown_task())
+            application.bot_data['suggestion_task'] = task
+            
+        except Exception as e:
+            logger.error(f"❌ Error showing suggestions: {e}")
+            # Fallback - just stop
+            player.is_playing = False
+            if player.owner_id:
+                await application.bot.send_message(
+                    chat_id=player.owner_id,
+                    text="🎵 Queue finished! Use Menu to load more music. 🎶",
+                    parse_mode="HTML"
+                )

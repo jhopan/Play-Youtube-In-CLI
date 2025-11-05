@@ -18,13 +18,24 @@ logger = logging.getLogger(__name__)
 
 
 async def handle_url_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle URL messages when waiting for input"""
+    """Handle URL messages and menu button"""
     user_id = update.effective_user.id
     username = update.effective_user.username or update.effective_user.first_name
+    message_text = update.message.text.strip()
     
     # Check access
     if not AccessControl.check_access(user_id):
-        logger.warning(f"🚫 @{username} (ID: {user_id}) tried to send URL but access denied")
+        logger.warning(f"🚫 @{username} (ID: {user_id}) tried to send message but access denied")
+        return
+    
+    # Handle menu button
+    if message_text == "🎵 Menu":
+        logger.info(f"🎯 @{username} clicked Menu button")
+        await update.message.reply_text(
+            "Select an action:",
+            reply_markup=Keyboards.main_menu(),
+            parse_mode="HTML"
+        )
         return
     
     # Check if we're waiting for input
@@ -32,7 +43,7 @@ async def handle_url_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not waiting_for:
         return
     
-    url = update.message.text.strip()
+    url = message_text
     logger.info(f"🔗 @{username} sent URL: {url}")
     
     # Validate YouTube URL

@@ -139,6 +139,30 @@ class Keyboards:
         return InlineKeyboardMarkup(keyboard)
     
     @staticmethod
+    def suggestion_dialog() -> InlineKeyboardMarkup:
+        """Keyboard for YouTube suggestion dialog"""
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "▶️ Play This",
+                    callback_data="suggestion_play"
+                ),
+                InlineKeyboardButton(
+                    "⏭️ Next Suggestion",
+                    callback_data="suggestion_next"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "⏹️ Stop",
+                    callback_data="suggestion_stop"
+                ),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
     def back_button() -> InlineKeyboardMarkup:
         """Simple back button"""
         keyboard = [

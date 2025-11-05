@@ -62,6 +62,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "back_to_main": handle_back_to_main,
         "auto_next_continue": handle_auto_next_continue,
         "auto_next_stop": handle_auto_next_stop,
+        "suggestion_play": handle_suggestion_play,
+        "suggestion_next": handle_suggestion_next,
+        "suggestion_stop": handle_suggestion_stop,
     }
     
     # Handle volume changes
@@ -374,3 +377,136 @@ async def handle_auto_next_stop(query, context):
     # Stop playback
     await handle_stop(query, context)
     logger.info(f"⏹️ @{username} stopped playback via auto-next dialog")
+
+
+async def handle_suggestion_play(query, context):
+    """Handle play current YouTube suggestion"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Cancel the countdown timer if it exists
+    if 'suggestion_task' in context.bot_data:
+        context.bot_data['suggestion_task'].cancel()
+        del context.bot_data['suggestion_task']
+    
+    # Get current suggestion
+    suggestions = context.bot_data.get('suggestions', [])
+    current_index = context.bot_data.get('suggestion_index', 0)
+    
+    if not suggestions or current_index >= len(suggestions):
+        await query.answer("No suggestion available", show_alert=True)
+        return
+    
+    current_suggestion = suggestions[current_index]
+    
+    # Add to playlist and play
+    player.add_song(current_suggestion)
+    
+    await query.edit_message_text(
+        f"{EMOJI['play']} <b>Playing suggestion:</b>\n🎵 {current_suggestion.title}",
+        parse_mode="HTML"
+    )
+    
+    # Start playback
+    asyncio.create_task(PlaybackManager.play_current_song(context.application))
+    
+    # Clean up suggestion data
+    context.bot_data.pop('suggestions', None)
+    context.bot_data.pop('suggestion_index', None)
+    
+    logger.info(f"▶️ @{username} played YouTube suggestion: {current_suggestion.title}")
+
+
+async def handle_suggestion_next(query, context):
+    """Handle show next YouTube suggestion"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Cancel the countdown timer if it exists
+    if 'suggestion_task' in context.bot_data:
+        context.bot_data['suggestion_task'].cancel()
+        del context.bot_data['suggestion_task']
+    
+    # Get suggestions
+    suggestions = context.bot_data.get('suggestions', [])
+    current_index = context.bot_data.get('suggestion_index', 0)
+    
+    if not suggestions:
+        await query.answer("No suggestions available", show_alert=True)
+        return
+    
+    # Move to next suggestion
+    next_index = (current_index + 1) % len(suggestions)
+    context.bot_data['suggestion_index'] = next_index
+    next_suggestion = suggestions[next_index]
+    
+    # Show next suggestion with new countdown
+    message_text = (
+        f"{EMOJI['info']} <b>YouTube Suggestion {next_index + 1}/{len(suggestions)}</b>\n\n"
+        f"🎵 <b>{next_suggestion.title}</b>\n"
+        f"⏱️ {next_suggestion.duration}\n\n"
+        f"Auto-play in <b>10</b> seconds..."
+    )
+    
+    await query.edit_message_text(
+        message_text,
+        reply_markup=Keyboards.suggestion_dialog(),
+        parse_mode="HTML"
+    )
+    
+    # Start new countdown
+    async def countdown():
+        for remaining in range(9, -1, -1):
+            await asyncio.sleep(1)
+            if remaining > 0:
+                new_text = message_text.replace("10", str(remaining))
+                try:
+                    await query.message.edit_text(
+                        new_text,
+                        reply_markup=Keyboards.suggestion_dialog(),
+                        parse_mode="HTML"
+                    )
+                except Exception:
+                    pass
+        
+        # Auto-play after countdown
+        player.add_song(next_suggestion)
+        await query.message.edit_text(
+            f"{EMOJI['play']} <b>Auto-playing suggestion:</b>\n🎵 {next_suggestion.title}",
+            parse_mode="HTML"
+        )
+        asyncio.create_task(PlaybackManager.play_current_song(context.application))
+        
+        # Clean up
+        context.bot_data.pop('suggestions', None)
+        context.bot_data.pop('suggestion_index', None)
+        context.bot_data.pop('suggestion_task', None)
+    
+    # Create and store countdown task
+    task = asyncio.create_task(countdown())
+    context.bot_data['suggestion_task'] = task
+    
+    logger.info(f"⏭️ @{username} skipped to next suggestion: {next_suggestion.title}")
+
+
+async def handle_suggestion_stop(query, context):
+    """Handle stop YouTube suggestions"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Cancel the countdown timer if it exists
+    if 'suggestion_task' in context.bot_data:
+        context.bot_data['suggestion_task'].cancel()
+        del context.bot_data['suggestion_task']
+    
+    # Clean up suggestion data
+    context.bot_data.pop('suggestions', None)
+    context.bot_data.pop('suggestion_index', None)
+    
+    # Stop playback
+    PlaybackManager.stop()
+    
+    await query.edit_message_text(
+        f"{EMOJI['stop']} <b>Playback stopped</b>\n\nSuggestions cancelled.",
+        reply_markup=Keyboards.main_menu(),
+        parse_mode="HTML"
+    )
+    
+    logger.info(f"⏹️ @{username} stopped YouTube suggestions and playback")

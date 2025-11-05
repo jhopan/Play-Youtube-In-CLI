@@ -110,3 +110,69 @@ class YouTubeExtractor:
         """
         valid_domains = ['youtube.com', 'youtu.be', 'www.youtube.com']
         return any(domain in url.lower() for domain in valid_domains)
+    
+    @staticmethod
+    def get_related_videos(video_url: str, count: int = 5) -> List[Song]:
+        """
+        Get related/suggested videos from YouTube
+        
+        Args:
+            video_url: Current video URL
+            count: Number of suggestions to get (default 5)
+        
+        Returns:
+            List of Song objects (suggested videos)
+        """
+        try:
+            ydl_opts = YTDL_OPTIONS.copy()
+            ydl_opts['extract_flat'] = False
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(video_url, download=False)
+                
+                # Try to get related videos from video info
+                related = []
+                
+                # Method 1: Check for 'related_videos' in info
+                if 'related_videos' in info and info['related_videos']:
+                    for vid in info['related_videos'][:count]:
+                        try:
+                            song = Song(
+                                url=f"https://www.youtube.com/watch?v={vid.get('id', vid.get('video_id'))}",
+                                title=vid.get('title', 'Unknown Title'),
+                                duration=str(vid.get('duration', 'Unknown'))
+                            )
+                            related.append(song)
+                        except:
+                            continue
+                
+                # Method 2: Use channel's popular videos as fallback
+                if len(related) == 0 and 'channel_url' in info:
+                    try:
+                        channel_url = info['channel_url']
+                        channel_info = ydl.extract_info(f"{channel_url}/videos", download=False)
+                        if 'entries' in channel_info:
+                            for entry in channel_info['entries'][:count]:
+                                if entry and entry.get('id') != info.get('id'):  # Skip current video
+                                    try:
+                                        song = Song(
+                                            url=f"https://www.youtube.com/watch?v={entry['id']}",
+                                            title=entry.get('title', 'Unknown Title'),
+                                            duration=str(entry.get('duration', 'Unknown'))
+                                        )
+                                        related.append(song)
+                                    except:
+                                        continue
+                    except:
+                        pass
+                
+                if related:
+                    logger.info(f"Found {len(related)} related videos")
+                else:
+                    logger.warning("No related videos found")
+                
+                return related[:count]
+                
+        except Exception as e:
+            logger.error(f"Error getting related videos: {e}")
+            return []
