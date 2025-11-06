@@ -1,23 +1,24 @@
 [Unit]
 Description=Play YouTube in CLI Bot
-After=network.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
-Type=simple
-User=jhopan
-Group=jhopan
-WorkingDirectory=/home/jhopan/Play-Youtube-In-CLI
+# Jalankan Python dari virtual environment
 ExecStart=/home/jhopan/Play-Youtube-In-CLI/venv/bin/python /home/jhopan/Play-Youtube-In-CLI/main.py
+WorkingDirectory=/home/jhopan/Play-Youtube-In-CLI
+
+# Jalankan sebagai root (akses penuh)
+User=root
+Group=root
+
+# Restart otomatis kalau crash
 Restart=always
-RestartSec=10
+RestartSec=5
 
-# Environment
-Environment="PYTHONUNBUFFERED=1"
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=ytmusic_bot
+# Simpan log
+StandardOutput=append:/home/jhopan/Play-Youtube-In-CLI/log.txt
+StandardError=append:/home/jhopan/Play-Youtube-In-CLI/error.log
 
 [Install]
 WantedBy=multi-user.target

@@ -101,8 +101,19 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     logger.info("✓ Signal handlers registered (SIGTERM, SIGINT)")
     
-    # Create application
-    application = Application.builder().token(TOKEN).build()
+    # Create application with network error handling
+    application = (
+        Application.builder()
+        .token(TOKEN)
+        .connect_timeout(30)
+        .read_timeout(30)
+        .write_timeout(30)
+        .pool_timeout(30)
+        .get_updates_connect_timeout(30)
+        .get_updates_read_timeout(30)
+        .get_updates_pool_timeout(30)
+        .build()
+    )
     _app_instance = application
     
     # Add handlers
@@ -132,23 +143,51 @@ def main():
     logger.info("🚀 Bot is now running! Press Ctrl+C to stop.")
     logger.info("=" * 60)
     
-    try:
-        # Run bot with proper signal handling
-        application.run_polling(
-            allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True  # Ignore old messages on startup
-        )
-    except KeyboardInterrupt:
-        logger.info("\n" + "=" * 60)
-        logger.info("⏸️ Bot stopped by user (Ctrl+C)")
-        logger.info("=" * 60)
-    except Exception as e:
-        logger.error(f"❌ Error during polling: {e}", exc_info=True)
-    finally:
-        # Cleanup
-        logger.info("🧹 Cleaning up...")
-        MPVPlayer.stop()
-        logger.info("✅ Cleanup complete. Goodbye! 👋")
+    # Infinite retry loop for network resilience
+    while True:
+        try:
+            # Run bot with proper signal handling and network error recovery
+            application.run_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,  # Ignore old messages on startup
+                close_loop=False  # Don't close event loop on error
+            )
+            # If we get here, it means clean shutdown
+            break
+            
+        except KeyboardInterrupt:
+            logger.info("\n" + "=" * 60)
+            logger.info("⏸️ Bot stopped by user (Ctrl+C)")
+            logger.info("=" * 60)
+            break
+            
+        except Exception as e:
+            error_msg = str(e).lower()
+            
+            # Check if it's a network error
+            if any(keyword in error_msg for keyword in [
+                'connection', 'network', 'timeout', 'unreachable',
+                'refused', 'reset', 'broken pipe', 'temporarily unavailable'
+            ]):
+                logger.warning(f"⚠️ Network error: {e}")
+                logger.info("🔄 Waiting 10 seconds before reconnecting...")
+                import time
+                time.sleep(10)
+                logger.info("🔌 Attempting to reconnect...")
+                continue  # Retry connection
+            else:
+                # Unknown error, log and retry anyway
+                logger.error(f"❌ Unexpected error: {e}", exc_info=True)
+                logger.info("🔄 Waiting 15 seconds before restarting...")
+                import time
+                time.sleep(15)
+                logger.info("🔌 Attempting to restart...")
+                continue  # Retry anyway
+    
+    # Cleanup (only if clean exit)
+    logger.info("🧹 Cleaning up...")
+    MPVPlayer.stop()
+    logger.info("✅ Cleanup complete. Goodbye! 👋")
 
 # ============================================================================
 # ENTRY POINT
