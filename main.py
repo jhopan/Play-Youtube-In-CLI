@@ -9,6 +9,8 @@ Date: 2024-11-05
 """
 
 import logging
+import signal
+import sys
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -38,6 +40,23 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
 
 # ============================================================================
+# SIGNAL HANDLERS
+# ============================================================================
+
+_app_instance = None
+
+def signal_handler(signum, frame):
+    """Handle shutdown signals gracefully"""
+    sig_name = signal.Signals(signum).name
+    logger.info(f"📨 Received signal: {sig_name}")
+    
+    # Don't exit immediately, let the application handle shutdown
+    if _app_instance:
+        logger.info("🛑 Initiating graceful shutdown...")
+    else:
+        logger.warning("⚠️ No application instance to shut down")
+
+# ============================================================================
 # ERROR HANDLER
 # ============================================================================
 
@@ -59,6 +78,8 @@ async def error_handler(update: Update, context):
 
 def main():
     """Start the bot"""
+    global _app_instance
+    
     try:
         # Validate configuration
         validate_config()
@@ -75,8 +96,14 @@ def main():
     logger.info(f"🔑 Token configured: {'Yes' if TOKEN != 'YOUR_BOT_TOKEN_HERE' else 'No'}")
     logger.info(f"📝 Log level: {logging.getLevelName(LOG_LEVEL)}")
     
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    logger.info("✓ Signal handlers registered (SIGTERM, SIGINT)")
+    
     # Create application
     application = Application.builder().token(TOKEN).build()
+    _app_instance = application
     
     # Add handlers
     logger.info("📋 Registering handlers...")
@@ -106,11 +133,17 @@ def main():
     logger.info("=" * 60)
     
     try:
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        # Run bot with proper signal handling
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True  # Ignore old messages on startup
+        )
     except KeyboardInterrupt:
         logger.info("\n" + "=" * 60)
         logger.info("⏸️ Bot stopped by user (Ctrl+C)")
         logger.info("=" * 60)
+    except Exception as e:
+        logger.error(f"❌ Error during polling: {e}", exc_info=True)
     finally:
         # Cleanup
         logger.info("🧹 Cleaning up...")
