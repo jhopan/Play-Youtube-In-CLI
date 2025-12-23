@@ -158,16 +158,15 @@ echo "Or restart your terminal."
 echo ""
 
 # Ask if user wants to test
-read -p "Do you want to test the aliases now? (y/n): " TEST_ALIASES
+read -p "Do you want to test the status now? (y/n): " TEST_ALIASES
 
 if [ "$TEST_ALIASES" = "y" ] || [ "$TEST_ALIASES" = "Y" ]; then
     echo ""
-    echo "🧪 Testing alias: ${ALIAS_NAME}-status"
+    echo "🧪 Testing service status..."
     echo ""
     
-    # Source the config and run status
-    source "$SHELL_CONFIG"
-    eval "${ALIAS_NAME}-status"
+    # Run systemctl directly (alias not loaded yet in current session)
+    sudo systemctl status "$SELECTED_SERVICE" --no-pager -l
 fi
 
 echo ""
