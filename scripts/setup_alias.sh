@@ -9,41 +9,35 @@ echo "🔧 Setup Service Alias"
 echo "================================"
 echo ""
 
-# Get all user services (non-system services)
-echo "📋 Scanning available services..."
+# Get all active services only
+echo "📋 Scanning active services..."
 echo ""
 
-# Get list of enabled services that are likely user-created
-SERVICES=$(systemctl list-unit-files --type=service --state=enabled,disabled,static | grep -v "^UNIT" | grep -v "^[0-9]" | awk '{print $1}' | sort)
+# Get list of active services
+ACTIVE_SERVICES=$(systemctl list-units --type=service --state=active | grep "\.service" | awk '{print $1}' | sort)
 
-# Filter to likely user services (exclude common system services)
+# Filter out system services, keep only user/custom services
 USER_SERVICES=()
 while IFS= read -r service; do
     # Skip common system services
-    if [[ ! "$service" =~ ^(getty|systemd|dbus|network|bluetooth|cups|avahi|polkit|udisks|accounts|rtkit|upower|gdm|lightdm|sshd) ]]; then
+    if [[ ! "$service" =~ ^(getty|systemd|dbus|network|bluetooth|cups|avahi|polkit|udisks|accounts|rtkit|upower|gdm|lightdm|user@|user-runtime) ]]; then
         USER_SERVICES+=("$service")
     fi
-done <<< "$SERVICES"
+done <<< "$ACTIVE_SERVICES"
 
-# If no user services found, show all services
+# If no user services found, show all active services
 if [ ${#USER_SERVICES[@]} -eq 0 ]; then
-    echo "⚠️  No user services found. Showing all services..."
+    echo "⚠️  No user services found. Showing all active services..."
     echo ""
-    USER_SERVICES=($(systemctl list-unit-files --type=service | grep -v "^UNIT" | grep -v "^[0-9]" | awk '{print $1}' | head -20))
+    USER_SERVICES=($(systemctl list-units --type=service --state=active | grep "\.service" | awk '{print $1}' | sort))
 fi
 
-# Display services with numbers
-echo "Available Services:"
+# Display active services with numbers
+echo "Active Services (${#USER_SERVICES[@]} found):"
 echo "-------------------"
 for i in "${!USER_SERVICES[@]}"; do
     SERVICE="${USER_SERVICES[$i]}"
-    STATUS=$(systemctl is-active "$SERVICE" 2>/dev/null || echo "inactive")
-    if [ "$STATUS" = "active" ]; then
-        STATUS_ICON="🟢"
-    else
-        STATUS_ICON="🔴"
-    fi
-    printf "%2d. %s %-40s [%s]\n" $((i+1)) "$STATUS_ICON" "$SERVICE" "$STATUS"
+    printf "%2d. 🟢 %-50s [active]\n" $((i+1)) "$SERVICE"
 done
 
 echo ""
