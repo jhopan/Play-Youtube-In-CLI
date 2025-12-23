@@ -5,11 +5,101 @@
 
 set -e
 
+# Determine shell config file
+get_shell_config() {
+    if [ -n "$BASH_VERSION" ]; then
+        if [ -f "$HOME/.bashrc" ]; then
+            echo "$HOME/.bashrc"
+        elif [ -f "$HOME/.bash_profile" ]; then
+            echo "$HOME/.bash_profile"
+        fi
+    elif [ -n "$ZSH_VERSION" ]; then
+        echo "$HOME/.zshrc"
+    else
+        case "$SHELL" in
+            */bash) echo "$HOME/.bashrc" ;;
+            */zsh) echo "$HOME/.zshrc" ;;
+            *) echo "$HOME/.bashrc" ;;
+        esac
+    fi
+}
+
+SHELL_CONFIG=$(get_shell_config)
+
 echo "🔧 Setup Service Alias"
 echo "================================"
 echo ""
+echo "What do you want to do?"
+echo ""
+echo "1. Create new alias"
+echo "2. Check existing aliases"
+echo "3. Delete alias"
+echo "0. Cancel"
+echo ""
+read -p "Select option: " OPTION
 
-# Get all active services only
+case "$OPTION" in
+    1)
+        # Create new alias - continue to main script
+        ;;
+    2)
+        # Check existing aliases
+        echo ""
+        echo "📋 Service aliases in $SHELL_CONFIG:"
+        echo ""
+        grep "# Aliases for.*\.service" "$SHELL_CONFIG" 2>/dev/null | sed 's/# Aliases for /  - /' || echo "  No aliases found"
+        echo ""
+        exit 0
+        ;;
+    3)
+        # Delete alias
+        echo ""
+        echo "📋 Existing service aliases:"
+        echo ""
+        ALIAS_SERVICES=$(grep "# Aliases for.*\.service" "$SHELL_CONFIG" 2>/dev/null | sed 's/# Aliases for \(.*\) (created.*/\1/' || echo "")
+        
+        if [ -z "$ALIAS_SERVICES" ]; then
+            echo "  No aliases found"
+            exit 0
+        fi
+        
+        mapfile -t ALIAS_ARRAY <<< "$ALIAS_SERVICES"
+        for i in "${!ALIAS_ARRAY[@]}"; do
+            printf "%2d. %s\n" $((i+1)) "${ALIAS_ARRAY[$i]}"
+        done
+        echo ""
+        echo "0. Cancel"
+        echo ""
+        read -p "Select alias to delete: " DEL_NUM
+        
+        if [ "$DEL_NUM" = "0" ]; then
+            echo "❌ Cancelled"
+            exit 0
+        fi
+        
+        if [[ "$DEL_NUM" =~ ^[0-9]+$ ]] && [ "$DEL_NUM" -ge 1 ] && [ "$DEL_NUM" -le "${#ALIAS_ARRAY[@]}" ]; then
+            SELECTED="${ALIAS_ARRAY[$((DEL_NUM-1))]}"
+            sed -i "/# Aliases for $SELECTED/,/^$/d" "$SHELL_CONFIG"
+            echo "✅ Deleted aliases for: $SELECTED"
+            echo ""
+            echo "🔄 Run: source $SHELL_CONFIG"
+        else
+            echo "❌ Invalid selection"
+        fi
+        exit 0
+        ;;
+    0)
+        echo "❌ Cancelled"
+        exit 0
+        ;;
+    *)
+        echo "❌ Invalid option"
+        exit 1
+        ;;
+esac
+
+# Continue with create new alias
+echo ""
 echo "📋 Scanning active services..."
 echo ""
 
@@ -83,43 +173,16 @@ echo ""
 echo "📝 Creating aliases for: $ALIAS_NAME"
 echo ""
 
-# Determine shell config file
-SHELL_CONFIG=""
-if [ -n "$BASH_VERSION" ]; then
-    if [ -f "$HOME/.bashrc" ]; then
-        SHELL_CONFIG="$HOME/.bashrc"
-    elif [ -f "$HOME/.bash_profile" ]; then
-        SHELL_CONFIG="$HOME/.bash_profile"
-    fi
-elif [ -n "$ZSH_VERSION" ]; then
-    SHELL_CONFIG="$HOME/.zshrc"
-fi
-
-if [ -z "$SHELL_CONFIG" ]; then
-    # Try to detect from $SHELL variable
-    case "$SHELL" in
-        */bash)
-            SHELL_CONFIG="$HOME/.bashrc"
-            ;;
-        */zsh)
-            SHELL_CONFIG="$HOME/.zshrc"
-            ;;
-        *)
-            SHELL_CONFIG="$HOME/.bashrc"
-            ;;
-    esac
-fi
-
-# Create aliases
+# Create aliases (new format: startXXX, stopXXX, etc.)
 ALIASES="
 # Aliases for $SELECTED_SERVICE (created by setup_alias.sh)
-alias ${ALIAS_NAME}-start='sudo systemctl start $SELECTED_SERVICE'
-alias ${ALIAS_NAME}-stop='sudo systemctl stop $SELECTED_SERVICE'
-alias ${ALIAS_NAME}-restart='sudo systemctl restart $SELECTED_SERVICE'
-alias ${ALIAS_NAME}-status='sudo systemctl status $SELECTED_SERVICE'
-alias ${ALIAS_NAME}-logs='sudo journalctl -u $SELECTED_SERVICE -f'
-alias ${ALIAS_NAME}-enable='sudo systemctl enable $SELECTED_SERVICE'
-alias ${ALIAS_NAME}-disable='sudo systemctl disable $SELECTED_SERVICE'
+alias start${ALIAS_NAME}='sudo systemctl start $SELECTED_SERVICE'
+alias stop${ALIAS_NAME}='sudo systemctl stop $SELECTED_SERVICE'
+alias restart${ALIAS_NAME}='sudo systemctl restart $SELECTED_SERVICE'
+alias status${ALIAS_NAME}='sudo systemctl status $SELECTED_SERVICE'
+alias logs${ALIAS_NAME}='sudo journalctl -u $SELECTED_SERVICE -f'
+alias enable${ALIAS_NAME}='sudo systemctl enable $SELECTED_SERVICE'
+alias disable${ALIAS_NAME}='sudo systemctl disable $SELECTED_SERVICE'
 "
 
 # Check if aliases already exist
@@ -143,13 +206,13 @@ echo ""
 echo "📝 Added to: $SHELL_CONFIG"
 echo ""
 echo "Available aliases:"
-echo "  ${ALIAS_NAME}-start     - Start the service"
-echo "  ${ALIAS_NAME}-stop      - Stop the service"
-echo "  ${ALIAS_NAME}-restart   - Restart the service"
-echo "  ${ALIAS_NAME}-status    - Check service status"
-echo "  ${ALIAS_NAME}-logs      - View live logs"
-echo "  ${ALIAS_NAME}-enable    - Enable service on boot"
-echo "  ${ALIAS_NAME}-disable   - Disable service on boot"
+echo "  start${ALIAS_NAME}      - Start the service"
+echo "  stop${ALIAS_NAME}       - Stop the service"
+echo "  restart${ALIAS_NAME}    - Restart the service"
+echo "  status${ALIAS_NAME}     - Check service status"
+echo "  logs${ALIAS_NAME}       - View live logs"
+echo "  enable${ALIAS_NAME}     - Enable service on boot"
+echo "  disable${ALIAS_NAME}    - Disable service on boot"
 echo ""
 echo "🔄 To use the aliases now, run:"
 echo "   source $SHELL_CONFIG"
