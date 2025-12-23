@@ -69,11 +69,24 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "suggestion_play": handle_suggestion_play,
         "suggestion_next": handle_suggestion_next,
         "suggestion_stop": handle_suggestion_stop,
+        "save_playlist": handle_save_playlist,
+        "my_playlists": handle_my_playlists,
+        "cancel_save_playlist": handle_cancel_save_playlist,
     }
     
     # Handle volume changes
     if query.data.startswith("vol_"):
         await handle_volume_change(query, context)
+        return
+    
+    # Handle load saved playlist
+    if query.data.startswith("load_saved_"):
+        await handle_load_saved_playlist(query, context)
+        return
+    
+    # Handle delete saved playlist
+    if query.data.startswith("delete_saved_"):
+        await handle_delete_saved_playlist(query, context)
         return
     
     # Execute handler
@@ -638,5 +651,137 @@ async def handle_loop_stop(query, context):
     )
     
     logger.info(f"⏹️ @{username} stopped playback via loop dialog")
+
+
+async def handle_save_playlist(query, context):
+    """Handle save playlist request"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    if not player.playlist:
+        await query.answer("No playlist to save!", show_alert=True)
+        logger.warning(f"⚠️ @{username} tried to save empty playlist")
+        return
+    
+    # Ask for playlist name
+    context.user_data['waiting_for'] = 'playlist_name'
+    await query.edit_message_text(
+        f"💾 <b>Save Playlist</b>\n\n"
+        f"📋 Current playlist has {len(player.playlist)} songs\n\n"
+        f"Please send a name for this playlist:",
+        reply_markup=Keyboards.cancel_save_playlist(),
+        parse_mode="HTML"
+    )
+    logger.info(f"💾 @{username} requested to save playlist ({len(player.playlist)} songs)")
+
+
+async def handle_cancel_save_playlist(query, context):
+    """Cancel save playlist"""
+    username = query.from_user.username or query.from_user.first_name
+    context.user_data['waiting_for'] = None
+    
+    await query.edit_message_text(
+        "❌ <b>Save cancelled</b>",
+        reply_markup=Keyboards.main_menu(),
+        parse_mode="HTML"
+    )
+    logger.info(f"❌ @{username} cancelled save playlist")
+
+
+async def handle_my_playlists(query, context):
+    """Show saved playlists"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    saved_playlists = player.get_saved_playlists()
+    
+    if not saved_playlists:
+        await query.edit_message_text(
+            "📂 <b>My Playlists</b>\n\n"
+            "No saved playlists yet.\n\n"
+            "Use 'Save Playlist' to save your current playlist!",
+            reply_markup=Keyboards.back_button(),
+            parse_mode="HTML"
+        )
+        logger.info(f"📂 @{username} viewed saved playlists (empty)")
+        return
+    
+    await query.edit_message_text(
+        "📂 <b>Select a playlist to play:</b>",
+        reply_markup=Keyboards.saved_playlists_menu(saved_playlists),
+        parse_mode="HTML"
+    )
+    logger.info(f"📂 @{username} viewed saved playlists ({len(saved_playlists)} playlists)")
+
+
+async def handle_load_saved_playlist(query, context):
+    """Load a saved playlist"""
+    username = query.from_user.username or query.from_user.first_name
+    playlist_name = query.data.replace("load_saved_", "")
+    
+    # Check if currently playing
+    was_playing = player.is_playing
+    append_mode = was_playing
+    
+    if player.load_saved_playlist(playlist_name, append=append_mode):
+        saved_playlists = player.get_saved_playlists()
+        playlist = saved_playlists.get(playlist_name)
+        
+        if append_mode:
+            await query.edit_message_text(
+                f"✅ <b>Playlist Added to Queue!</b>\n\n"
+                f"📋 {playlist_name}\n"
+                f"🎵 {len(playlist.songs)} songs added to queue\n\n"
+                f"Songs will play after current queue finishes.",
+                reply_markup=Keyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            logger.info(f"✅ @{username} added saved playlist '{playlist_name}' to queue")
+        else:
+            await query.edit_message_text(
+                f"✅ <b>Playlist Loaded!</b>\n\n"
+                f"📋 {playlist_name}\n"
+                f"🎵 {len(playlist.songs)} songs\n\n"
+                f"Starting playback...",
+                reply_markup=Keyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            logger.info(f"✅ @{username} loaded saved playlist '{playlist_name}'")
+            
+            # Auto-start playback
+            player.is_playing = True
+            player.current_index = 0
+            asyncio.create_task(PlaybackManager.play_current_song(context.application))
+    else:
+        await query.answer("Playlist not found!", show_alert=True)
+        logger.error(f"❌ Failed to load playlist '{playlist_name}' for @{username}")
+
+
+async def handle_delete_saved_playlist(query, context):
+    """Delete a saved playlist"""
+    username = query.from_user.username or query.from_user.first_name
+    playlist_name = query.data.replace("delete_saved_", "")
+    
+    if player.delete_saved_playlist(playlist_name):
+        await query.answer(f"Deleted '{playlist_name}'", show_alert=False)
+        
+        # Refresh playlists menu
+        saved_playlists = player.get_saved_playlists()
+        if saved_playlists:
+            await query.edit_message_text(
+                "📂 <b>Select a playlist to play:</b>",
+                reply_markup=Keyboards.saved_playlists_menu(saved_playlists),
+                parse_mode="HTML"
+            )
+        else:
+            await query.edit_message_text(
+                "📂 <b>My Playlists</b>\n\n"
+                "No saved playlists.",
+                reply_markup=Keyboards.back_button(),
+                parse_mode="HTML"
+            )
+        
+        logger.info(f"🗑️ @{username} deleted saved playlist '{playlist_name}'")
+    else:
+        await query.answer("Failed to delete playlist", show_alert=True)
+        logger.error(f"❌ Failed to delete playlist '{playlist_name}' for @{username}")
 
 

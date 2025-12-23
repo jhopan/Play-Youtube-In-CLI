@@ -6,21 +6,24 @@
 
 Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. Kontrol penuh playback music melalui interface Telegram yang interaktif.
 
-> 🚀 **Quick Start?** Baca [docs/QUICKSTART.md](docs/QUICKSTART.md) untuk mulai dalam 5 menit!  
-> 📚 **Dokumentasi Lengkap?** Lihat [docs/INDEX.md](docs/INDEX.md) untuk navigasi semua docs.
+> 🚀 **Dokumentasi lengkap ada di bawah** - scroll untuk melihat semua fitur, instalasi, dan troubleshooting!
 
 ---
 
 ## ✨ Features
 
 ### 🎮 Playback Control
-- **📋 Load Playlist** - Import seluruh YouTube playlist
+
+- **📋 Load Playlist** - Import seluruh YouTube playlist (otomatis masuk queue jika sedang memutar)
 - **🎥 Load Video** - Tambah single video ke queue
 - **▶️ Play/Pause** - Kontrol pemutaran real-time
 - **⏭️ Next/Previous** - Navigasi antar lagu
 - **⏹️ Stop** - Hentikan pemutaran
+- **💾 Save Playlist** - Simpan playlist favorit untuk diputar kapan saja
+- **📂 Saved Playlists** - Akses dan putar playlist yang sudah disimpan
 
 ### 🎚️ Advanced Features
+
 - **🔁 Loop Mode** - Repeat satu lagu terus-menerus
 - **🔀 Shuffle Mode** - Random playback order
 - **🔊 Volume Control** - Fine-tune dengan +10/-10, preset levels, instant mute
@@ -29,6 +32,7 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 - **ℹ️ Info Display** - Comprehensive bot status & current song details
 
 ### 🛡️ Security & Stability
+
 - **User Whitelist** - Access control via Telegram User ID
 - **Owner-Only Controls** - Hanya bot owner yang bisa kontrol playback
 - **Auto-Restart** - MPV process monitoring & auto-recovery
@@ -36,6 +40,7 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 - **24/7 Operation** - Systemd service support untuk continuous operation
 
 ### 💫 User Experience
+
 - **Interactive Buttons** - Full UI dengan inline keyboards
 - **Real-time Notifications** - Instant updates saat song changes
 - **HTML Formatting** - Clean UI dengan emoji & formatting
@@ -48,14 +53,14 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 
 ### Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Bot Framework** | python-telegram-bot 22.5+ | Telegram Bot API integration |
-| **YouTube Extraction** | yt-dlp | Video URL & metadata extraction |
-| **Audio Player** | MPV | Headless audio streaming |
-| **Audio Processing** | ffmpeg | Audio codec support |
-| **Volume Control** | amixer / pactl | System-level volume management |
-| **Environment** | python-dotenv | Configuration management |
+| Component              | Technology                | Purpose                         |
+| ---------------------- | ------------------------- | ------------------------------- |
+| **Bot Framework**      | python-telegram-bot 22.5+ | Telegram Bot API integration    |
+| **YouTube Extraction** | yt-dlp                    | Video URL & metadata extraction |
+| **Audio Player**       | MPV                       | Headless audio streaming        |
+| **Audio Processing**   | ffmpeg                    | Audio codec support             |
+| **Volume Control**     | amixer / pactl            | System-level volume management  |
+| **Environment**        | python-dotenv             | Configuration management        |
 
 ### Project Structure
 
@@ -95,8 +100,9 @@ Play-Youtube-In-CLI/
 │
 ├── scripts/               # Utility scripts
 │   ├── setup.sh                # Auto-setup script
-│   ├── healthcheck.sh          # System health checker
-│   └── diagnose.py             # Diagnostic tool
+│   ├── setup_service.sh        # Interactive systemd service creator
+│   ├── setup_alias.sh          # Create aliases for systemctl commands
+│   └── healthcheck.sh          # System health checker
 │
 └── backup/                # Legacy monolithic version
     └── ytmusic_interactive_bot.py
@@ -215,26 +221,42 @@ You should see:
 ### Loading Music
 
 **Load Playlist:**
-1. Click `📋 Playlist`
+
+1. Click `📋 Load Playlist`
 2. Send YouTube playlist URL
 3. Bot extracts all videos
-4. Playback starts automatically
+4. Jika sedang memutar musik → masuk queue (tidak langsung diputar)
+5. Jika queue kosong → langsung diputar otomatis
 
 **Load Single Video:**
+
 1. Click `🎥 Video`
 2. Send YouTube video URL
 3. Video added to queue
 4. Starts playing if queue was empty
 
+**Save Playlist:**
+
+1. Load playlist seperti biasa
+2. Click `💾 Save Playlist`
+3. Beri nama playlist
+4. Playlist tersimpan untuk diputar nanti
+
+**Play Saved Playlist:**
+
+1. Click `📂 My Playlists`
+2. Pilih playlist yang ingin diputar
+3. Playlist langsung dimuat dan diputar
+
 ### Playback Control
 
-| Button | Action |
-|--------|--------|
-| ▶️ Play | Start/Resume playback |
-| ⏸️ Pause | Pause current song |
-| ⏭️ Next | Skip to next song |
-| ⏮️ Prev | Go to previous song |
-| ⏹️ Stop | Stop playback & clear state |
+| Button   | Action                      |
+| -------- | --------------------------- |
+| ▶️ Play  | Start/Resume playback       |
+| ⏸️ Pause | Pause current song          |
+| ⏭️ Next  | Skip to next song           |
+| ⏮️ Prev  | Go to previous song         |
+| ⏹️ Stop  | Stop playback & clear state |
 
 ### Volume Control
 
@@ -257,10 +279,12 @@ Current volume: 50%
 ### Special Modes
 
 **🔁 Loop Mode:**
+
 - OFF: Play playlist sequentially
 - ON: Repeat current song infinitely
 
 **🔀 Shuffle Mode:**
+
 - OFF: Play in order
 - ON: Random song selection
 
@@ -311,7 +335,25 @@ Settings:
 
 ### 24/7 Operation with Systemd
 
-#### 1. Edit Service File
+#### Method 1: Interactive Setup (Recommended)
+
+Use the interactive setup script:
+
+```bash
+cd ~/Play-Youtube-In-CLI
+chmod +x scripts/setup_service.sh
+./scripts/setup_service.sh
+```
+
+The script will guide you through:
+- Selecting service type (YouTube Music Bot, Custom Python, or Custom App)
+- Auto-detecting bot directory and Python environment
+- Configuring service settings
+- Enabling and starting the service
+
+#### Method 2: Manual Setup
+
+Edit the service file:
 
 ```bash
 nano ytmusic_bot.service
@@ -326,7 +368,7 @@ WorkingDirectory=/home/your_username/Play-Youtube-In-CLI
 ExecStart=/home/your_username/Play-Youtube-In-CLI/venv/bin/python /home/your_username/Play-Youtube-In-CLI/main.py
 ```
 
-#### 2. Install Service
+Install the service:
 
 ```bash
 sudo cp ytmusic_bot.service /etc/systemd/system/
@@ -335,20 +377,41 @@ sudo systemctl enable ytmusic_bot
 sudo systemctl start ytmusic_bot
 ```
 
-#### 3. Manage Service
+#### 3. Create Convenient Aliases
+
+Use the alias setup script to create shortcuts:
 
 ```bash
-# Check status
+chmod +x scripts/setup_alias.sh
+./scripts/setup_alias.sh
+```
+
+The script will:
+- Show available systemd services
+- Let you choose which service to create aliases for
+- Create convenient aliases like:
+  - `ytmusic-start` - Start the bot
+  - `ytmusic-stop` - Stop the bot
+  - `ytmusic-restart` - Restart the bot
+  - `ytmusic-status` - Check status
+  - `ytmusic-logs` - View live logs
+
+After setup, you can use short commands instead of full systemctl commands!
+
+#### 4. Manage Service
+
+```bash
+# Using full commands
 sudo systemctl status ytmusic_bot
-
-# View logs
 sudo journalctl -u ytmusic_bot -f
-
-# Restart
 sudo systemctl restart ytmusic_bot
-
-# Stop
 sudo systemctl stop ytmusic_bot
+
+# Or using aliases (if you ran setup_alias.sh)
+ytmusic-status
+ytmusic-logs
+ytmusic-restart
+ytmusic-stop
 ```
 
 ### Update Bot
@@ -385,17 +448,17 @@ Bot logs detailed activity with emoji markers:
 
 ### Log Categories
 
-| Emoji | Category | Description |
-|-------|----------|-------------|
-| 🚀 | Startup | Bot initialization |
-| 📞 | Commands | Command execution |
-| 🎯 | Buttons | Button interactions |
-| 🎵 | Playback | Song playback events |
-| 🔊 | Volume | Volume changes |
-| 🔗 | URLs | URL processing |
-| ⚠️ | Warnings | Non-critical issues |
-| ❌ | Errors | Error conditions |
-| ✅ | Success | Successful operations |
+| Emoji | Category | Description           |
+| ----- | -------- | --------------------- |
+| 🚀    | Startup  | Bot initialization    |
+| 📞    | Commands | Command execution     |
+| 🎯    | Buttons  | Button interactions   |
+| 🎵    | Playback | Song playback events  |
+| 🔊    | Volume   | Volume changes        |
+| 🔗    | URLs     | URL processing        |
+| ⚠️    | Warnings | Non-critical issues   |
+| ❌    | Errors   | Error conditions      |
+| ✅    | Success  | Successful operations |
 
 ### View Logs
 
@@ -434,6 +497,7 @@ sudo journalctl -u ytmusic_bot -n 50
 # Restart bot
 sudo systemctl restart ytmusic_bot
 ```
+
 </details>
 
 <details>
@@ -453,6 +517,7 @@ python3 main.py
 ```
 
 See [docs/FIX_PYTHON_313.md](docs/FIX_PYTHON_313.md)
+
 </details>
 
 <details>
@@ -470,6 +535,7 @@ pip list | grep telegram
 ```
 
 See [docs/FIX_MODULE_NOT_FOUND.md](docs/FIX_MODULE_NOT_FOUND.md)
+
 </details>
 
 <details>
@@ -480,6 +546,7 @@ See [docs/FIX_MODULE_NOT_FOUND.md](docs/FIX_MODULE_NOT_FOUND.md)
 Music streams through MPV but you won't hear it locally. Control playback via Telegram.
 
 See [docs/FIX_NO_AUDIO.md](docs/FIX_NO_AUDIO.md) for PulseAudio setup if needed.
+
 </details>
 
 <details>
@@ -497,6 +564,7 @@ ls -l /tmp/mpvsocket
 ```
 
 See [docs/VOLUME_CONTROL.md](docs/VOLUME_CONTROL.md)
+
 </details>
 
 <details>
@@ -510,6 +578,7 @@ mpv --no-video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 sudo apt remove mpv -y
 sudo apt install mpv -y
 ```
+
 </details>
 
 <details>
@@ -522,34 +591,10 @@ pip install --upgrade yt-dlp
 # Test manually
 yt-dlp -f bestaudio "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
+
 </details>
 
-**Complete troubleshooting guide:** [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-
----
-
-## 📚 Documentation
-
-### Complete Documentation Index
-
-| Document | Description |
-|----------|-------------|
-| [INDEX.md](docs/INDEX.md) | Documentation navigator |
-| [QUICKSTART.md](docs/QUICKSTART.md) | 5-minute setup guide |
-| [INSTALLATION.md](docs/INSTALLATION.md) | Detailed installation guide |
-| [GETTING_STARTED.md](docs/GETTING_STARTED.md) | First-time user guide |
-| [ENV_SETUP.md](docs/ENV_SETUP.md) | Environment configuration |
-| [ENHANCED_LOGGING.md](docs/ENHANCED_LOGGING.md) | Logging system documentation |
-| [VOLUME_CONTROL.md](docs/VOLUME_CONTROL.md) | Volume control technical guide |
-| [UI_ENHANCEMENTS.md](docs/UI_ENHANCEMENTS.md) | UI features & buttons |
-| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues & solutions |
-| [CHANGELOG.md](docs/CHANGELOG.md) | Version history & updates |
-
-### Technical Documentation
-
-- [FIX_PYTHON_313.md](docs/FIX_PYTHON_313.md) - Python 3.13 compatibility
-- [FIX_MODULE_NOT_FOUND.md](docs/FIX_MODULE_NOT_FOUND.md) - Module import issues
-- [FIX_NO_AUDIO.md](docs/FIX_NO_AUDIO.md) - Headless audio setup
+**Complete troubleshooting guide ada di atas** - lihat section 🐛 Troubleshooting
 
 ---
 
@@ -604,6 +649,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Reporting Issues
 
 Please include:
+
 - Bot logs (`sudo journalctl -u ytmusic_bot -n 100`)
 - Python version (`python3 --version`)
 - OS version (`cat /etc/os-release`)
@@ -627,4 +673,4 @@ If you find this project useful, please give it a star! ⭐
 
 **Made with ❤️ for music lovers who love automation**
 
-*Bot Telegram untuk streaming YouTube Music di Ubuntu Server - Full control via Telegram, no GUI needed!*
+_Bot Telegram untuk streaming YouTube Music di Ubuntu Server - Full control via Telegram, no GUI needed!_

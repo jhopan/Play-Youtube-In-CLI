@@ -38,6 +38,17 @@ class Keyboards:
                     callback_data="clear_queue"
                 ),
             ],
+            # Row 1.5: Save & My Playlists
+            [
+                InlineKeyboardButton(
+                    "💾 Save Playlist",
+                    callback_data="save_playlist"
+                ),
+                InlineKeyboardButton(
+                    "📂 My Playlists",
+                    callback_data="my_playlists"
+                ),
+            ],
             # Row 2: Main playback controls
             [
                 InlineKeyboardButton(
@@ -214,4 +225,35 @@ class Keyboards:
         ]
         
         return InlineKeyboardMarkup(keyboard)
-
+    
+    @staticmethod
+    def cancel_save_playlist() -> InlineKeyboardMarkup:
+        """Keyboard for canceling save playlist"""
+        keyboard = [
+            [
+                InlineKeyboardButton("❌ Cancel", callback_data="cancel_save_playlist"),
+            ]
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def saved_playlists_menu(playlists: dict) -> InlineKeyboardMarkup:
+        """Menu showing saved playlists"""
+        keyboard = []
+        
+        # Add playlist buttons (max 8 playlists to avoid too many buttons)
+        for i, (name, playlist) in enumerate(list(playlists.items())[:8]):
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"📋 {name} ({len(playlist.songs)} songs)",
+                    callback_data=f"load_saved_{name}"
+                )
+            ])
+        
+        # Back button
+        keyboard.append([
+            InlineKeyboardButton("« Back to Menu", callback_data="back_to_main")
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)

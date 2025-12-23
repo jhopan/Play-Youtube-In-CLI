@@ -43,6 +43,11 @@ async def handle_url_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not waiting_for:
         return
     
+    # Handle playlist name input
+    if waiting_for == 'playlist_name':
+        await handle_playlist_name_input(update, context, message_text)
+        return
+    
     url = message_text
     logger.info(f"🔗 @{username} sent URL: {url}")
     
@@ -86,18 +91,31 @@ async def handle_playlist_url(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     # Extract playlist
     songs = YouTubeExtractor.extract_playlist(url)
+    
+    # Check if currently playing
+    was_playing = player.is_playing
+    
+    # Add songs to queue
     player.playlist.extend(songs)
     
     # Update message
-    await loading_msg.edit_text(
-        MessageFormatter.playlist_loaded(len(songs), len(player.playlist)),
-        parse_mode="HTML"
-    )
-    
-    logger.info(f"✅ Loaded {len(songs)} songs from playlist for @{username} (Total: {len(player.playlist)})")
-    
-    # Auto-start playback if not already playing
-    if not player.is_playing:
+    if was_playing:
+        await loading_msg.edit_text(
+            f"{EMOJI['success']} <b>Playlist Added to Queue!</b>\n\n"
+            f"📋 Added {len(songs)} songs to queue\n"
+            f"📊 Total in queue: {len(player.playlist)}\n\n"
+            f"Songs will play after current queue finishes.",
+            parse_mode="HTML"
+        )
+        logger.info(f"✅ Added {len(songs)} songs to queue for @{username} (Total: {len(player.playlist)})")
+    else:
+        await loading_msg.edit_text(
+            MessageFormatter.playlist_loaded(len(songs), len(player.playlist)),
+            parse_mode="HTML"
+        )
+        logger.info(f"✅ Loaded {len(songs)} songs from playlist for @{username} (Total: {len(player.playlist)})")
+        
+        # Auto-start playback if not already playing
         player.is_playing = True
         player.current_index = len(player.playlist) - len(songs)
         asyncio.create_task(PlaybackManager.play_current_song(context.application))
@@ -147,3 +165,37 @@ async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         reply_markup=Keyboards.main_menu(),
         parse_mode="HTML"
     )
+
+
+async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE, name: str):
+    """Handle playlist name input for saving"""
+    username = update.effective_user.username or update.effective_user.first_name
+    
+    # Validate name
+    if len(name) < 1 or len(name) > 50:
+        await update.message.reply_text(
+            MessageFormatter.error_message("Playlist name must be 1-50 characters"),
+            reply_markup=Keyboards.main_menu()
+        )
+        context.user_data['waiting_for'] = None
+        return
+    
+    # Save playlist
+    if player.save_current_playlist(name):
+        await update.message.reply_text(
+            f"✅ <b>Playlist Saved!</b>\n\n"
+            f"📋 Name: {name}\n"
+            f"🎵 Songs: {len(player.playlist)}\n\n"
+            f"You can load it anytime from 'My Playlists'",
+            reply_markup=Keyboards.main_menu(),
+            parse_mode="HTML"
+        )
+        logger.info(f"✅ @{username} saved playlist '{name}' ({len(player.playlist)} songs)")
+    else:
+        await update.message.reply_text(
+            MessageFormatter.error_message("Failed to save playlist"),
+            reply_markup=Keyboards.main_menu()
+        )
+        logger.error(f"❌ Failed to save playlist for @{username}")
+    
+    context.user_data['waiting_for'] = None
