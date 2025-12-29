@@ -66,16 +66,19 @@ COOKIES_FROM_BROWSER = os.getenv('COOKIES_FROM_BROWSER', '')
 
 # Build YTDL options
 YTDL_OPTIONS = {
-    'format': 'bestaudio/best',
+    'format': 'bestaudio*[ext=m4a]/bestaudio*[ext=webm]/bestaudio*/best',  # More flexible format selection
     'noplaylist': False,  # Allow playlists
     'extract_flat': False,  # Extract full info
     'quiet': True,
     'no_warnings': True,
     'geo_bypass': True,
+    'nocheckcertificate': True,  # Bypass SSL certificate verification
+    'ignoreerrors': False,  # Don't skip on errors
+    'no_color': True,  # Disable color output
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'web'],  # Use multiple clients for better compatibility
-            'player_skip': ['webpage', 'configs'],  # Skip unnecessary requests
+            'player_client': ['android', 'ios', 'web'],  # Try multiple clients
+            'player_skip': ['configs'],  # Skip unnecessary requests
         }
     },
 }
