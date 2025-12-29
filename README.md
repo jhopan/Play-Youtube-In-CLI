@@ -185,24 +185,42 @@ COOKIES_FROM_BROWSER=
 
 #### 6. Setup YouTube Cookies (WAJIB!)
 
-YouTube memerlukan cookies untuk menghindari bot detection. **Ikuti panduan lengkap:**
+YouTube memerlukan cookies untuk menghindari bot detection.
 
-📖 **Baca:** [CARA_EXPORT_COOKIES.md](CARA_EXPORT_COOKIES.md)
+**📍 Install Chrome Extension:**
 
-**Quick Steps:**
+[Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) - Cari di Chrome Web Store: `Get cookies.txt LOCALLY`
 
-1. **Install Chrome Extension:** [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
-2. **Login** ke YouTube di Chrome
-3. **Export** cookies menggunakan extension
-4. **Save** file sebagai `cookies.txt` di folder project
-5. File `cookies.txt` harus sejajar dengan `main.py`
+> ⚠️ Gunakan yang "LOCALLY" bukan yang "Export" biasa (lebih aman, tidak upload ke server)
+
+**📍 Export Cookies:**
+
+1. **Login** ke YouTube di Chrome (youtube.com)
+2. **Klik extension** "Get cookies.txt LOCALLY" di toolbar
+3. **Klik "Export"** - file `cookies.txt` akan terdownload
+4. **Copy file** ke folder project (sejajar dengan `main.py`)
+5. **Rename** menjadi `cookies.txt` jika berbeda
 
 ```
 Project/
 ├── main.py
 ├── cookies.txt    ← Simpan di sini!
-└── .env
+├── .env
+└── bot/
 ```
+
+**📍 Troubleshooting:**
+
+- **Error: "No such file"** → Pastikan `cookies.txt` di root folder
+- **Error: "403 Forbidden"** → Cookies expired, export ulang
+- **Error: "Sign in to confirm"** → Logout YouTube, login ulang, export baru
+- **Cookies expired?** → Update setiap 6-12 bulan
+
+**📍 Keamanan:**
+
+- ❌ JANGAN upload `cookies.txt` ke GitHub (sudah di `.gitignore`)
+- ❌ JANGAN share cookies ke orang lain
+- ✅ Simpan hanya di local server
 
 #### 7. Run Bot
 
