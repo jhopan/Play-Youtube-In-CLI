@@ -20,9 +20,10 @@ from telegram.ext import (
     filters,
 )
 
-from bot.config import TOKEN, LOG_LEVEL, LOG_FORMAT, validate_config
+from bot.config import TOKEN, LOG_LEVEL, LOG_FORMAT, validate_config, COOKIES_FILE, COOKIES_FROM_BROWSER
 from bot.handlers import start_command, button_callback, handle_url_message
 from bot.core import player, MPVPlayer
+import os
 
 # ============================================================================
 # LOGGING SETUP
@@ -95,6 +96,14 @@ def main():
     logger.info("=" * 60)
     logger.info(f"🔑 Token configured: {'Yes' if TOKEN != 'YOUR_BOT_TOKEN_HERE' else 'No'}")
     logger.info(f"📝 Log level: {logging.getLevelName(LOG_LEVEL)}")
+    
+    # Log cookies configuration
+    if COOKIES_FILE and os.path.exists(COOKIES_FILE):
+        logger.info(f"🍪 Using cookies from file: {COOKIES_FILE}")
+    elif COOKIES_FROM_BROWSER:
+        logger.info(f"🍪 Using cookies from browser: {COOKIES_FROM_BROWSER}")
+    else:
+        logger.warning("⚠️ No cookies configured - YouTube may block requests!")
     
     # Register signal handlers for graceful shutdown
     signal.signal(signal.SIGTERM, signal_handler)

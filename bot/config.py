@@ -83,12 +83,11 @@ YTDL_OPTIONS = {
 # Add cookies configuration (prioritize file over browser)
 if COOKIES_FILE and os.path.exists(COOKIES_FILE):
     YTDL_OPTIONS['cookiefile'] = COOKIES_FILE
-    logger.info(f"Using cookies from file: {COOKIES_FILE}")
+    # Cookies file found and will be used
 elif COOKIES_FROM_BROWSER:
     YTDL_OPTIONS['cookiesfrombrowser'] = (COOKIES_FROM_BROWSER,)
-    logger.info(f"Using cookies from browser: {COOKIES_FROM_BROWSER}")
-else:
-    logger.warning("No cookies configured - YouTube may block requests!")
+    # Browser cookies will be extracted
+# If neither is configured, YouTube may block requests
 
 # ============================================================================
 # UI CONFIGURATION
