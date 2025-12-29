@@ -56,6 +56,15 @@ MPV_OPTIONS = {
 # YOUTUBE-DL OPTIONS
 # ============================================================================
 
+# YouTube Cookies Configuration
+# Method 1: Use cookies file (RECOMMENDED - more reliable)
+COOKIES_FILE = os.getenv('YOUTUBE_COOKIES_FILE', 'cookies.txt')
+
+# Method 2: Extract from browser automatically (chrome, firefox, edge, safari, etc.)
+# Set to empty string to disable
+COOKIES_FROM_BROWSER = os.getenv('COOKIES_FROM_BROWSER', '')
+
+# Build YTDL options
 YTDL_OPTIONS = {
     'format': 'bestaudio/best',
     'noplaylist': False,  # Allow playlists
@@ -63,7 +72,23 @@ YTDL_OPTIONS = {
     'quiet': True,
     'no_warnings': True,
     'geo_bypass': True,
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['android', 'web'],  # Use multiple clients for better compatibility
+            'player_skip': ['webpage', 'configs'],  # Skip unnecessary requests
+        }
+    },
 }
+
+# Add cookies configuration (prioritize file over browser)
+if COOKIES_FILE and os.path.exists(COOKIES_FILE):
+    YTDL_OPTIONS['cookiefile'] = COOKIES_FILE
+    logger.info(f"Using cookies from file: {COOKIES_FILE}")
+elif COOKIES_FROM_BROWSER:
+    YTDL_OPTIONS['cookiesfrombrowser'] = (COOKIES_FROM_BROWSER,)
+    logger.info(f"Using cookies from browser: {COOKIES_FROM_BROWSER}")
+else:
+    logger.warning("No cookies configured - YouTube may block requests!")
 
 # ============================================================================
 # UI CONFIGURATION

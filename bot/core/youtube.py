@@ -61,6 +61,12 @@ class YouTubeExtractor:
                     logger.info(f"Extracted single video: {song.title}")
                     return [song]
                     
+        except yt_dlp.utils.DownloadError as e:
+            error_msg = str(e)
+            if 'Sign in' in error_msg or 'bot' in error_msg.lower():
+                logger.error("YouTube bot detection - cookies required. See config.py COOKIES_FROM_BROWSER setting")
+                raise Exception("YouTube memerlukan autentikasi. Silakan set COOKIES_FROM_BROWSER di .env (chrome/firefox/edge)")
+            raise
         except Exception as e:
             logger.error(f"Error extracting YouTube data: {e}")
             raise

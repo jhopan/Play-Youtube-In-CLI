@@ -49,6 +49,11 @@ logs/
 config.py
 .env
 
+# YouTube Cookies (SECURITY - Never commit!)
+cookies.txt
+youtube.com_cookies.txt
+*_cookies.txt
+
 # Temporary files
 tmp/
 temp/

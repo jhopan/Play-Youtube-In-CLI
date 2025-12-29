@@ -175,12 +175,36 @@ Add your configuration:
 BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
 ALLOWED_USER_IDS=123456789,987654321
 DEFAULT_VOLUME=75
-LOG_LEVEL=INFO
+
+# YouTube Cookies (PENTING!)
+YOUTUBE_COOKIES_FILE=cookies.txt
+COOKIES_FROM_BROWSER=
 ```
 
 **Get Your User ID:** [@userinfobot](https://t.me/userinfobot) → Send `/start` → Copy "Id"
 
-#### 6. Run Bot
+#### 6. Setup YouTube Cookies (WAJIB!)
+
+YouTube memerlukan cookies untuk menghindari bot detection. **Ikuti panduan lengkap:**
+
+📖 **Baca:** [CARA_EXPORT_COOKIES.md](CARA_EXPORT_COOKIES.md)
+
+**Quick Steps:**
+
+1. **Install Chrome Extension:** [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+2. **Login** ke YouTube di Chrome
+3. **Export** cookies menggunakan extension
+4. **Save** file sebagai `cookies.txt` di folder project
+5. File `cookies.txt` harus sejajar dengan `main.py`
+
+```
+Project/
+├── main.py
+├── cookies.txt    ← Simpan di sini!
+└── .env
+```
+
+#### 7. Run Bot
 
 ```bash
 python3 main.py
@@ -346,6 +370,7 @@ chmod +x scripts/setup_service.sh
 ```
 
 The script will guide you through:
+
 - Selecting service type (YouTube Music Bot, Custom Python, or Custom App)
 - Auto-detecting bot directory and Python environment
 - Configuring service settings
@@ -387,6 +412,7 @@ chmod +x scripts/setup_alias.sh
 ```
 
 The script will:
+
 - Show available systemd services
 - Let you choose which service to create aliases for
 - Create convenient aliases like:
