@@ -102,10 +102,10 @@ Play-Youtube-In-CLI/
 │
 ├── scripts/               # Utility scripts
 │   ├── setup.sh                # Auto-setup script
-│   ├── setup_service.sh        # Interactive systemd service creator
-│   ├── setup_alias.sh          # Create aliases for systemctl commands
-│   ├── start.sh                # Easy bot starter (foreground or service)
-│   ├── stop.sh                 # Easy bot stopper
+│   ├── install_service.sh      # Systemd service installer
+│   ├── alias_setup.sh          # Create aliases for project & service
+│   ├── start.sh                # Bot starter (simple)
+│   ├── stop.sh                 # Bot stopper
 │   └── manage_service.sh       # Service management tool
 │
 └── backup/                # Legacy monolithic version
@@ -450,94 +450,79 @@ Settings:
 
 ### 24/7 Operation with Systemd
 
-#### Method 1: Interactive Setup (Recommended)
+#### 1. Install Service
 
-Use the interactive setup script:
-
-```bash
-cd ~/Play-Youtube-In-CLI
-chmod +x scripts/setup_service.sh
-./scripts/setup_service.sh
-```
-
-The script will guide you through:
-
-- Selecting service type (YouTube Music Bot, Custom Python, or Custom App)
-- Auto-detecting bot directory and Python environment
-- Configuring service settings
-- Enabling and starting the service
-
-#### Method 2: Manual Setup
-
-Edit the service file:
+Use the simple installer:
 
 ```bash
-nano ytmusic_bot.service
-```
-
-Update `User` and paths if your username is not `ubuntu`:
-
-```ini
-[Service]
-User=your_username
-WorkingDirectory=/home/your_username/Play-Youtube-In-CLI
-ExecStart=/home/your_username/Play-Youtube-In-CLI/venv/bin/python /home/your_username/Play-Youtube-In-CLI/main.py
-```
-
-Install the service:
-
-```bash
-sudo cp ytmusic_bot.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable ytmusic_bot
-sudo systemctl start ytmusic_bot
-```
-
-#### 3. Create Convenient Aliases (Optional)
-
-Use the simplified alias setup script:
-
-```bash
-chmod +x scripts/setup_alias.sh
-./scripts/setup_alias.sh
+cd ~/Play-Youtube-In-CLI/scripts
+sudo ./install_service.sh
 ```
 
 **Features:**
-- No more scanning 47+ services - focused on ytmusic-bot only
-- Quick alias creation with custom prefix (default: `ytmusic`)
-- Check/Delete existing aliases easily
+- Interactive service name selection (default: ytmusic-bot)
+- Auto-creates service file with correct paths
+- Option to enable auto-start on boot
+- Option to start service immediately
+- Displays management commands
 
-**Choose an option:**
+**What it does:**
 ```
-1. Create/Update aliases
-2. Check existing aliases  
-3. Delete aliases
-0. Cancel
+🚀 Systemd Service Installer
+═══════════════════════════════════
+Project Directory: /home/user/Play-Youtube-In-CLI
+User: your_username
+
+Enter service name (default: ytmusic-bot): [Enter]
+📦 Installing service: ytmusic-bot...
+✅ Service installed successfully!
+
+Enable auto-start on boot? (Y/n): y
+✅ Auto-start enabled!
+
+Start service now? (Y/n): y
+✅ Service started!
 ```
 
-**Available aliases after setup:**
+#### 2. Create Shell Aliases (Optional)
+
+Use the smart alias setup:
 
 ```bash
-startytmusic      # Start the bot
-stopytmusic       # Stop the bot  
-restartytmusic    # Restart the bot
-statusytmusic     # Check bot status
-logsytmusic       # View live logs
-enableytmusic     # Enable on boot
-disableytmusic    # Disable on boot
+cd ~/Play-Youtube-In-CLI/scripts
+./alias_setup.sh
+```
+
+**Features:**
+- 🔍 Auto-scans for project directories (Youtube, YT Music, Telegram Bot)
+- 🔍 Auto-detects systemd services (user & system)
+- 🎯 Auto-detects service type (system/user)
+- 📝 Creates full management aliases
+
+**What it creates:**
+
+```bash
+ytmusic              # Go to project directory
+ytmusic-start        # Start service
+ytmusic-stop         # Stop service
+ytmusic-restart      # Restart service
+ytmusic-status       # Check service status
+ytmusic-logs         # View live logs
+ytmusic-enable       # Enable service on boot
+ytmusic-disable      # Disable service on boot
 ```
 
 After setup, reload your shell:
 ```bash
-source ~/.bashrc
+source ~/.bashrc   # or ~/.zshrc for zsh
 ```
 
-#### 4. Manage Service
+#### 3. Manage Service
 
 ```bash
 # Using scripts (easiest)
-./scripts/start.sh        # Start bot
-./scripts/stop.sh         # Stop bot
+./scripts/start.sh           # Start bot
+./scripts/stop.sh            # Stop bot
 ./scripts/manage_service.sh  # Full management UI
 
 # Using systemctl directly
@@ -546,8 +531,9 @@ sudo journalctl -u ytmusic-bot -f
 sudo systemctl restart ytmusic-bot
 sudo systemctl stop ytmusic-bot
 
-# Or using aliases (if you ran setup_alias.sh)
-statusytmusic
+# Or using aliases (if you ran alias_setup.sh)
+ytmusic-status
+ytmusic-logs
 logsytmusic
 restartytmusic
 stopytmusic
