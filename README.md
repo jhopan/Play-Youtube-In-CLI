@@ -102,7 +102,9 @@ Play-Youtube-In-CLI/
 │   ├── setup.sh                # Auto-setup script
 │   ├── setup_service.sh        # Interactive systemd service creator
 │   ├── setup_alias.sh          # Create aliases for systemctl commands
-│   └── healthcheck.sh          # System health checker
+│   ├── start.sh                # Easy bot starter (foreground or service)
+│   ├── stop.sh                 # Easy bot stopper
+│   └── manage_service.sh       # Service management tool
 │
 └── backup/                # Legacy monolithic version
     └── ytmusic_interactive_bot.py
@@ -224,6 +226,21 @@ Project/
 
 #### 7. Run Bot
 
+**Easy Way (Recommended):**
+
+```bash
+# Make scripts executable
+chmod +x scripts/*.sh
+
+# Start bot
+./scripts/start.sh
+
+# Stop bot (in another terminal)
+./scripts/stop.sh
+```
+
+**Manual Way:**
+
 ```bash
 python3 main.py
 ```
@@ -235,6 +252,56 @@ You should see:
 ✅ Configuration validated successfully
 🚀 Bot is now running! Press Ctrl+C to stop.
 ```
+
+---
+
+## 🎮 Quick Start Scripts
+
+### Start Bot
+
+```bash
+./scripts/start.sh
+```
+
+**Features:**
+- Auto-detects if systemd service is installed
+- Option to start as service or foreground
+- Checks virtual environment
+- Auto-installs dependencies if missing
+- Validates .env configuration
+
+**Choose Start Method:**
+```
+Choose start method:
+1. Start as systemd service (recommended)
+2. Start in foreground (manual)
+```
+
+### Stop Bot
+
+```bash
+./scripts/stop.sh
+```
+
+**Features:**
+- Stops systemd service if running
+- Finds and kills Python processes
+- Option to kill MPV player processes
+- Graceful shutdown with SIGTERM, force kill if needed
+
+### Manage Service
+
+```bash
+sudo ./scripts/manage_service.sh
+```
+
+**Features:**
+- Check service status
+- View logs (live or recent)
+- Start/Stop/Restart service
+- Enable/Disable auto-start
+- Delete service and aliases
+- Show service configuration
 
 ---
 
