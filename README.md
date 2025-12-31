@@ -414,11 +414,13 @@ Klik `🔁 Loop` untuk cycle: OFF → Song → Queue → OFF
 When a song finishes, bot automatically plays next song with smooth transition.
 
 **Queue Loop Mode:**
+
 - Saat playlist habis → Otomatis restart dari awal
 - Tidak ada dialog countdown (seamless loop)
 - Update via "Now Playing" message yang sama (no spam)
 
 **Normal Mode:**
+
 - Playlist habis → Bot stops dengan notifikasi "Playlist Finished"
 - Edit message yang ada (tidak kirim pesan baru)
 
@@ -460,6 +462,7 @@ sudo ./install_service.sh
 ```
 
 **Features:**
+
 - Interactive service name selection (default: ytmusic-bot)
 - Auto-creates service file with correct paths
 - Option to enable auto-start on boot
@@ -467,6 +470,7 @@ sudo ./install_service.sh
 - Displays management commands
 
 **What it does:**
+
 ```
 🚀 Systemd Service Installer
 ═══════════════════════════════════
@@ -494,6 +498,7 @@ cd ~/Play-Youtube-In-CLI/scripts
 ```
 
 **Features:**
+
 - 🔍 Auto-scans for project directories (Youtube, YT Music, Telegram Bot)
 - 🔍 Auto-detects systemd services (user & system)
 - 🎯 Auto-detects service type (system/user)
@@ -513,6 +518,7 @@ ytmusic-disable      # Disable service on boot
 ```
 
 After setup, reload your shell:
+
 ```bash
 source ~/.bashrc   # or ~/.zshrc for zsh
 ```
@@ -746,6 +752,7 @@ Bot implements multi-layer access control:
 ## 📋 Recent Updates
 
 ### v2.5.0 (Dec 31, 2024)
+
 - 🔁 **3-State Loop Mode**: OFF → Song Loop → Queue Loop
 - 🎯 **Song Selection**: Pilih lagu spesifik saat save playlist (max 10)
 - 🚫 **No Message Spam**: Edit-in-place untuk semua notifikasi
@@ -755,6 +762,7 @@ Bot implements multi-layer access control:
 - 🐛 **Service Fix**: Changed Type=forking to Type=simple (no more stuck)
 
 ### v2.4.0 (Previous)
+
 - 📊 Enhanced logging with emoji & user tracking
 - 🔊 Advanced volume control
 - 💾 Playlist save/load functionality
