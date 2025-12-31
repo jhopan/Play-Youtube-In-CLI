@@ -173,25 +173,8 @@ echo ""
 echo "📝 Creating aliases for: $ALIAS_NAME"
 echo ""
 
-# Get project directory (parent of scripts directory)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-
-# Create aliases - use start.sh and stop.sh scripts for ytmusic bot
-if [[ "$SELECTED_SERVICE" == "ytmusic"* ]] || [[ "$SELECTED_SERVICE" == "*music*bot" ]]; then
-    # For YT Music Bot - use custom scripts
-    ALIASES="
-# Aliases for $SELECTED_SERVICE (created by setup_alias.sh)
-alias start${ALIAS_NAME}='$PROJECT_DIR/scripts/start.sh'
-alias stop${ALIAS_NAME}='$PROJECT_DIR/scripts/stop.sh'
-alias restart${ALIAS_NAME}='$PROJECT_DIR/scripts/stop.sh && sleep 2 && $PROJECT_DIR/scripts/start.sh'
-alias status${ALIAS_NAME}='sudo systemctl status $SELECTED_SERVICE'
-alias logs${ALIAS_NAME}='sudo journalctl -u $SELECTED_SERVICE -f'
-alias manage${ALIAS_NAME}='sudo $PROJECT_DIR/scripts/manage_service.sh'
-"
-else
-    # For other services - use systemctl directly
-    ALIASES="
+# Create aliases (all use systemctl - systemd service will handle scripts)
+ALIASES="
 # Aliases for $SELECTED_SERVICE (created by setup_alias.sh)
 alias start${ALIAS_NAME}='sudo systemctl start $SELECTED_SERVICE'
 alias stop${ALIAS_NAME}='sudo systemctl stop $SELECTED_SERVICE'
@@ -201,7 +184,6 @@ alias logs${ALIAS_NAME}='sudo journalctl -u $SELECTED_SERVICE -f'
 alias enable${ALIAS_NAME}='sudo systemctl enable $SELECTED_SERVICE'
 alias disable${ALIAS_NAME}='sudo systemctl disable $SELECTED_SERVICE'
 "
-fi
 
 # Check if aliases already exist
 if grep -q "# Aliases for $SELECTED_SERVICE" "$SHELL_CONFIG" 2>/dev/null; then
@@ -223,25 +205,14 @@ echo "✅ Aliases created successfully!"
 echo ""
 echo "📝 Added to: $SHELL_CONFIG"
 echo ""
-
-if [[ "$SELECTED_SERVICE" == "ytmusic"* ]] || [[ "$SELECTED_SERVICE" == "*music*bot" ]]; then
-    echo "Available aliases:"
-    echo "  start${ALIAS_NAME}      - Start the bot (using start.sh)"
-    echo "  stop${ALIAS_NAME}       - Stop the bot (using stop.sh)"
-    echo "  restart${ALIAS_NAME}    - Restart the bot"
-    echo "  status${ALIAS_NAME}     - Check service status"
-    echo "  logs${ALIAS_NAME}       - View live logs"
-    echo "  manage${ALIAS_NAME}     - Open service manager"
-else
-    echo "Available aliases:"
-    echo "  start${ALIAS_NAME}      - Start the service"
-    echo "  stop${ALIAS_NAME}       - Stop the service"
-    echo "  restart${ALIAS_NAME}    - Restart the service"
-    echo "  status${ALIAS_NAME}     - Check service status"
-    echo "  logs${ALIAS_NAME}       - View live logs"
-    echo "  enable${ALIAS_NAME}     - Enable service on boot"
-    echo "  disable${ALIAS_NAME}    - Disable service on boot"
-fi
+echo "Available aliases:"
+echo "  start${ALIAS_NAME}      - Start the service"
+echo "  stop${ALIAS_NAME}       - Stop the service"
+echo "  restart${ALIAS_NAME}    - Restart the service"
+echo "  status${ALIAS_NAME}     - Check service status"
+echo "  logs${ALIAS_NAME}       - View live logs"
+echo "  enable${ALIAS_NAME}     - Enable service on boot"
+echo "  disable${ALIAS_NAME}    - Disable service on boot"
 echo ""
 echo "🔄 To use the aliases now, run:"
 echo "   source $SHELL_CONFIG"
