@@ -80,6 +80,7 @@ class PlayerState:
         
         # Player modes
         self.loop_enabled: bool = False
+        self.loop_mode: str = 'song'  # 'song' or 'queue'
         self.shuffle_enabled: bool = False
         
         # Feature toggles
@@ -110,6 +111,7 @@ class PlayerState:
         self.is_playing = False
         self.is_paused = False
         self.loop_enabled = False
+        self.loop_mode = 'song'
         self.shuffle_enabled = False
         self.mpv_process = None
         self.playback_task = None
@@ -182,6 +184,27 @@ class PlayerState:
         playlist = SavedPlaylist(
             name=name,
             songs=self.playlist.copy(),
+            created_at=datetime.now().isoformat()
+        )
+        self._saved_playlists[name] = playlist
+        self._save_playlists()
+        return True
+    
+    def save_selected_songs(self, name: str, song_indices: list) -> bool:
+        """Save selected songs from current playlist"""
+        if not self.playlist:
+            return False
+        
+        # Get selected songs
+        selected_songs = [self.playlist[i] for i in song_indices if 0 <= i < len(self.playlist)]
+        
+        if not selected_songs:
+            return False
+        
+        from datetime import datetime
+        playlist = SavedPlaylist(
+            name=name,
+            songs=selected_songs,
             created_at=datetime.now().isoformat()
         )
         self._saved_playlists[name] = playlist

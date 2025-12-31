@@ -44,7 +44,7 @@ async def handle_url_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     
     # Handle playlist name input
-    if waiting_for == 'playlist_name':
+    if waiting_for in ['playlist_name', 'playlist_name_all', 'playlist_name_selected']:
         await handle_playlist_name_input(update, context, message_text)
         return
     
@@ -94,6 +94,7 @@ async def handle_playlist_url(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     # Check if currently playing
     was_playing = player.is_playing
+    start_index = len(player.playlist)  # Remember where new songs start
     
     # Add songs to queue
     player.playlist.extend(songs)
@@ -115,11 +116,12 @@ async def handle_playlist_url(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         logger.info(f"✅ Loaded {len(songs)} songs from playlist for @{username} (Total: {len(player.playlist)})")
         
-        # Auto-start playback if not already playing
-        player.is_playing = True
-        player.current_index = len(player.playlist) - len(songs)
-        asyncio.create_task(PlaybackManager.play_current_song(context.application))
-        logger.info(f"▶️ Auto-started playback for @{username}")
+        # Auto-start playback ONLY if nothing is playing
+        if not player.is_playing and not player.is_paused:
+            player.is_playing = True
+            player.current_index = start_index
+            asyncio.create_task(PlaybackManager.play_current_song(context.application))
+            logger.info(f"▶️ Auto-started playback for @{username}")
     
     # Show main menu
     await update.message.reply_text(
@@ -152,8 +154,8 @@ async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
     
     logger.info(f"✅ Added video for @{username}: '{song.title}' (Position: {len(player.playlist)})")
     
-    # Auto-start playback if not already playing
-    if not player.is_playing:
+    # Auto-start playback ONLY if nothing is playing
+    if not player.is_playing and not player.is_paused:
         player.is_playing = True
         player.current_index = len(player.playlist) - 1
         asyncio.create_task(PlaybackManager.play_current_song(context.application))
@@ -170,6 +172,7 @@ async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
 async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE, name: str):
     """Handle playlist name input for saving"""
     username = update.effective_user.username or update.effective_user.first_name
+    waiting_for = context.user_data.get('waiting_for')
     
     # Validate name
     if len(name) < 1 or len(name) > 50:
@@ -180,17 +183,34 @@ async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAU
         context.user_data['waiting_for'] = None
         return
     
-    # Save playlist
-    if player.save_current_playlist(name):
+    # Save playlist based on mode
+    success = False
+    song_count = 0
+    
+    if waiting_for == 'playlist_name_all' or context.user_data.get('selected_songs') is None:
+        # Save all songs
+        success = player.save_current_playlist(name)
+        song_count = len(player.playlist)
+    elif waiting_for == 'playlist_name_selected':
+        # Save selected songs
+        selected_songs = context.user_data.get('selected_songs', [])
+        success = player.save_selected_songs(name, selected_songs)
+        song_count = len(selected_songs)
+    else:
+        # Old behavior - save all
+        success = player.save_current_playlist(name)
+        song_count = len(player.playlist)
+    
+    if success:
         await update.message.reply_text(
             f"✅ <b>Playlist Saved!</b>\n\n"
             f"📋 Name: {name}\n"
-            f"🎵 Songs: {len(player.playlist)}\n\n"
+            f"🎵 Songs: {song_count}\n\n"
             f"You can load it anytime from 'My Playlists'",
             reply_markup=Keyboards.main_menu(),
             parse_mode="HTML"
         )
-        logger.info(f"✅ @{username} saved playlist '{name}' ({len(player.playlist)} songs)")
+        logger.info(f"✅ @{username} saved playlist '{name}' ({song_count} songs)")
     else:
         await update.message.reply_text(
             MessageFormatter.error_message("Failed to save playlist"),
@@ -199,3 +219,4 @@ async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAU
         logger.error(f"❌ Failed to save playlist for @{username}")
     
     context.user_data['waiting_for'] = None
+    context.user_data['selected_songs'] = []

@@ -114,9 +114,9 @@ class PlaybackManager:
         if not player.is_playing:
             return
             
-        if player.loop_enabled:
+        if player.loop_enabled and player.loop_mode == 'song':
             # Replay the same song
-            logger.info("🔁 Loop enabled - replaying current song")
+            logger.info("🔁 Loop enabled (song mode) - replaying current song")
             await asyncio.sleep(0.5)
             await PlaybackManager.play_current_song(application)
         else:
@@ -170,28 +170,49 @@ class PlaybackManager:
                 await asyncio.sleep(0.5)  # Small delay for smooth transition
                 await PlaybackManager.play_next(application)
             else:
-                # Queue finished - auto-loop playlist from beginning
-                logger.info("� Queue finished - restarting playlist from beginning")
-                player.current_index = 0
-                
-                # Notify user
-                if player.owner_id:
-                    try:
-                        await application.bot.send_message(
-                            chat_id=player.owner_id,
-                            text=(
-                                f"🔄 <b>Playlist Finished!</b>\n\n"
-                                f"♾️ Auto-restarting from beginning...\n"
-                                f"📀 Total songs: {len(player.playlist)}\n\n"
-                                f"Use /stop to stop playback."
-                            ),
-                            parse_mode="HTML"
-                        )
-                    except Exception as e:
-                        logger.error(f"Error sending notification: {e}")
-                
-                await asyncio.sleep(1)
-                await PlaybackManager.play_current_song(application)
+                # Queue finished - check loop mode
+                if player.loop_enabled and player.loop_mode == 'queue':
+                    # Loop queue - restart from beginning
+                    logger.info("🔁 Loop enabled (queue mode) - restarting playlist from beginning")
+                    player.current_index = 0
+                    
+                    # Notify user
+                    if player.owner_id:
+                        try:
+                            await application.bot.send_message(
+                                chat_id=player.owner_id,
+                                text=(
+                                    f"🔁 <b>Queue Loop Enabled!</b>\n\n"
+                                    f"♾️ Restarting playlist from beginning...\n"
+                                    f"📀 Total songs: {len(player.playlist)}\n\n"
+                                    f"Toggle loop to change mode."
+                                ),
+                                parse_mode="HTML"
+                            )
+                        except Exception as e:
+                            logger.error(f"Error sending notification: {e}")
+                    
+                    await asyncio.sleep(1)
+                    await PlaybackManager.play_current_song(application)
+                else:
+                    # No loop - stop playback
+                    logger.info("⏹️ Queue finished - stopping playback")
+                    player.is_playing = False
+                    
+                    # Notify user
+                    if player.owner_id:
+                        try:
+                            await application.bot.send_message(
+                                chat_id=player.owner_id,
+                                text=(
+                                    f"✅ <b>Playlist Finished!</b>\n\n"
+                                    f"📀 Played all {len(player.playlist)} songs\n\n"
+                                    f"Use Menu to load more music! 🎶"
+                                ),
+                                parse_mode="HTML"
+                            )
+                        except Exception as e:
+                            logger.error(f"Error sending notification: {e}")
                 
                 # Optional: Show YouTube suggestions if enabled
                 if ENABLE_YOUTUBE_SUGGESTIONS:

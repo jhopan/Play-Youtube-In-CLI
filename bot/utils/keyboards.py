@@ -17,6 +17,9 @@ class Keyboards:
         """Get the main control keyboard"""
         # Dynamic emojis based on state
         loop_emoji = EMOJI['loop_active'] if player.loop_enabled else EMOJI['loop']
+        loop_text = "Loop "
+        if player.loop_enabled:
+            loop_text += f"({'🔂Song' if player.loop_mode == 'song' else '🔁Queue'})"
         shuffle_emoji = EMOJI['shuffle_active'] if player.shuffle_enabled else EMOJI['shuffle']
         
         if player.is_playing and not player.is_paused:
@@ -74,7 +77,7 @@ class Keyboards:
             # Row 4: Modes with status
             [
                 InlineKeyboardButton(
-                    f"{loop_emoji} Loop {'✅' if player.loop_enabled else ''}",
+                    f"{loop_emoji} {loop_text}",
                     callback_data="toggle_loop"
                 ),
                 InlineKeyboardButton(
@@ -254,6 +257,48 @@ class Keyboards:
         # Back button
         keyboard.append([
             InlineKeyboardButton("« Back to Menu", callback_data="back_to_main")
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def song_selection_menu(selected_indices: list) -> InlineKeyboardMarkup:
+        """Menu for selecting songs to save in playlist"""
+        keyboard = []
+        
+        # Show up to 10 songs for selection
+        max_songs = min(10, len(player.playlist))
+        for i in range(max_songs):
+            song = player.playlist[i]
+            is_selected = i in selected_indices
+            checkbox = "✅" if is_selected else "⬜"
+            
+            # Truncate song title if too long
+            title = song.title[:30] + "..." if len(song.title) > 30 else song.title
+            
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{checkbox} {title}",
+                    callback_data=f"toggle_song_{i}"
+                )
+            ])
+        
+        if len(player.playlist) > 10:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"⚠️ Showing 10 of {len(player.playlist)} songs",
+                    callback_data="dummy"
+                )
+            ])
+        
+        # Action buttons
+        keyboard.append([
+            InlineKeyboardButton("💾 Save All", callback_data="save_all_songs"),
+            InlineKeyboardButton("✅ Save Selected", callback_data="save_selected_songs"),
+        ])
+        
+        keyboard.append([
+            InlineKeyboardButton("❌ Cancel", callback_data="cancel_save_playlist")
         ])
         
         return InlineKeyboardMarkup(keyboard)

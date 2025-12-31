@@ -72,6 +72,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "save_playlist": handle_save_playlist,
         "my_playlists": handle_my_playlists,
         "cancel_save_playlist": handle_cancel_save_playlist,
+        "save_all_songs": handle_save_all_songs,
+        "save_selected_songs": handle_save_selected_songs,
     }
     
     # Handle volume changes
@@ -87,6 +89,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Handle delete saved playlist
     if query.data.startswith("delete_saved_"):
         await handle_delete_saved_playlist(query, context)
+        return
+    
+    # Handle toggle song selection
+    if query.data.startswith("toggle_song_"):
+        await handle_toggle_song_selection(query, context)
         return
     
     # Execute handler
@@ -196,17 +203,33 @@ async def handle_stop(query, context):
 
 
 async def handle_toggle_loop(query, context):
-    """Handle loop toggle"""
+    """Handle loop toggle - cycles through: off -> song -> queue -> off"""
     username = query.from_user.username or query.from_user.first_name
-    loop_enabled = PlaybackManager.toggle_loop()
-    status = "enabled" if loop_enabled else "disabled"
-    emoji = EMOJI['loop_active'] if loop_enabled else EMOJI['loop']
+    
+    # Cycle through loop modes
+    if not player.loop_enabled:
+        # Off -> Song Loop
+        player.loop_enabled = True
+        player.loop_mode = 'song'
+        status = "🔂 Loop: Current Song"
+        emoji = EMOJI['loop_active']
+    elif player.loop_mode == 'song':
+        # Song Loop -> Queue Loop
+        player.loop_mode = 'queue'
+        status = "🔁 Loop: All Queue"
+        emoji = EMOJI['loop_active']
+    else:
+        # Queue Loop -> Off
+        player.loop_enabled = False
+        player.loop_mode = 'song'
+        status = "➡️ Loop: Off"
+        emoji = EMOJI['loop']
     
     await query.edit_message_text(
-        f"{emoji} Loop {status}",
+        f"{emoji} {status}",
         reply_markup=Keyboards.main_menu()
     )
-    logger.info(f"🔁 @{username} {status} loop mode")
+    logger.info(f"🔁 @{username} changed loop mode: {status}")
 
 
 async def handle_toggle_shuffle(query, context):
@@ -662,13 +685,15 @@ async def handle_save_playlist(query, context):
         logger.warning(f"⚠️ @{username} tried to save empty playlist")
         return
     
-    # Ask for playlist name
-    context.user_data['waiting_for'] = 'playlist_name'
+    # Show song selection menu
+    context.user_data['waiting_for'] = 'save_playlist_selection'
+    context.user_data['selected_songs'] = []  # Track selected song indices
+    
     await query.edit_message_text(
         f"💾 <b>Save Playlist</b>\n\n"
-        f"📋 Current playlist has {len(player.playlist)} songs\n\n"
-        f"Please send a name for this playlist:",
-        reply_markup=Keyboards.cancel_save_playlist(),
+        f"📋 Current playlist: {len(player.playlist)} songs\n\n"
+        f"✅ Select songs to save (or Save All):",
+        reply_markup=Keyboards.song_selection_menu(context.user_data.get('selected_songs', [])),
         parse_mode="HTML"
     )
     logger.info(f"💾 @{username} requested to save playlist ({len(player.playlist)} songs)")
@@ -783,5 +808,69 @@ async def handle_delete_saved_playlist(query, context):
     else:
         await query.answer("Failed to delete playlist", show_alert=True)
         logger.error(f"❌ Failed to delete playlist '{playlist_name}' for @{username}")
+
+
+async def handle_save_all_songs(query, context):
+    """Handle save all songs in playlist"""
+    username = query.from_user.username or query.from_user.first_name
+    
+    # Ask for playlist name
+    context.user_data['waiting_for'] = 'playlist_name_all'
+    context.user_data['selected_songs'] = None  # None means save all
+    
+    await query.edit_message_text(
+        f"💾 <b>Save All Songs</b>\n\n"
+        f"📋 Saving all {len(player.playlist)} songs\n\n"
+        f"Please send a name for this playlist:",
+        reply_markup=Keyboards.cancel_save_playlist(),
+        parse_mode="HTML"
+    )
+    logger.info(f"💾 @{username} chose to save all songs")
+
+
+async def handle_save_selected_songs(query, context):
+    """Handle save selected songs"""
+    username = query.from_user.username or query.from_user.first_name
+    selected_songs = context.user_data.get('selected_songs', [])
+    
+    if not selected_songs:
+        await query.answer("Please select at least one song!", show_alert=True)
+        return
+    
+    # Ask for playlist name
+    context.user_data['waiting_for'] = 'playlist_name_selected'
+    
+    await query.edit_message_text(
+        f"💾 <b>Save Selected Songs</b>\n\n"
+        f"✅ Selected: {len(selected_songs)} songs\n\n"
+        f"Please send a name for this playlist:",
+        reply_markup=Keyboards.cancel_save_playlist(),
+        parse_mode="HTML"
+    )
+    logger.info(f"💾 @{username} chose to save {len(selected_songs)} selected songs")
+
+
+async def handle_toggle_song_selection(query, context):
+    """Handle toggling a song selection"""
+    song_index = int(query.data.replace("toggle_song_", ""))
+    selected_songs = context.user_data.get('selected_songs', [])
+    
+    if song_index in selected_songs:
+        selected_songs.remove(song_index)
+    else:
+        selected_songs.append(song_index)
+    
+    context.user_data['selected_songs'] = selected_songs
+    
+    # Update the menu
+    await query.edit_message_text(
+        f"💾 <b>Save Playlist</b>\n\n"
+        f"📋 Current playlist: {len(player.playlist)} songs\n"
+        f"✅ Selected: {len(selected_songs)} songs\n\n"
+        f"Select songs to save (or Save All):",
+        reply_markup=Keyboards.song_selection_menu(selected_songs),
+        parse_mode="HTML"
+    )
+    await query.answer()
 
 
