@@ -530,12 +530,118 @@ async def alarms_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     alarms = storage.get_alarms()
     
     text = "⏲️ <b>Scheduled Alarms</b>\n\n"
-    text += f"Total alarms: {len(alarms)}\n\n"
-    text += "<i>Feature coming soon!</i>\n"
-    text += "You'll be able to schedule music playback at specific times."
+    
+    if alarms:
+        text += f"Total alarms: {len(alarms)}\n\n"
+        for i, alarm in enumerate(alarms, 1):
+            time_str = alarm['time']
+            enabled = "✅" if alarm['enabled'] else "❌"
+            days = ", ".join(alarm['days']) if alarm['days'] else "Once"
+            playlist_name = alarm.get('playlist_name', 'Current Queue')
+            
+            text += f"{i}. {enabled} <b>{time_str}</b>\n"
+            text += f"   📅 {days}\n"
+            text += f"   🎵 {playlist_name}\n\n"
+    else:
+        text += "No alarms set.\n\n"
+        text += "📌 <b>How to use:</b>\n"
+        text += "1. Click 'Add Alarm'\n"
+        text += "2. Send time in HH:MM format (e.g. 07:00)\n"
+        text += "3. Choose playlist or use current queue\n"
+        text += "4. Set repeat days (optional)\n"
     
     await query.edit_message_text(
         text=text,
         reply_markup=Keyboards.alarms_menu(),
         parse_mode='HTML'
     )
+
+@restricted
+async def add_alarm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start alarm creation process"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Set context flag for alarm creation
+    context.user_data['creating_alarm'] = True
+    
+    text = "⏰ <b>Add New Alarm</b>\n\n"
+    text += "Please send the time in <b>HH:MM</b> format (24-hour)\n\n"
+    text += "Examples:\n"
+    text += "• <code>07:00</code> - 7:00 AM\n"
+    text += "• <code>14:30</code> - 2:30 PM\n"
+    text += "• <code>22:00</code> - 10:00 PM\n\n"
+    text += "Send /cancel to cancel"
+    
+    await query.edit_message_text(
+        text=text,
+        parse_mode='HTML'
+    )
+
+@restricted
+async def view_alarms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """View all alarms with details"""
+    query = update.callback_query
+    await query.answer()
+    
+    alarms = storage.get_alarms()
+    
+    text = "⏰ <b>All Alarms</b>\n\n"
+    
+    if alarms:
+        for i, alarm in enumerate(alarms, 1):
+            enabled = "✅ Enabled" if alarm['enabled'] else "❌ Disabled"
+            time_str = alarm['time']
+            days = ", ".join(alarm['days']) if alarm['days'] else "Once"
+            playlist = alarm.get('playlist_name', 'Current Queue')
+            
+            text += f"<b>Alarm {i}</b> - {enabled}\n"
+            text += f"🕐 Time: {time_str}\n"
+            text += f"📅 Days: {days}\n"
+            text += f"🎵 Playlist: {playlist}\n"
+            text += f"ID: <code>{alarm['id']}</code>\n\n"
+    else:
+        text += "No alarms configured.\n"
+    
+    keyboard = [
+        [{"text": "🔙 Back to Alarms", "callback_data": "alarms_menu"}]
+    ]
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup={"inline_keyboard": keyboard},
+        parse_mode='HTML'
+    )
+
+@restricted
+async def toggle_alarm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Toggle alarm enable/disable"""
+    query = update.callback_query
+    alarm_id = query.data.split('_')[2]
+    
+    alarms = storage.get_alarms()
+    for alarm in alarms:
+        if alarm['id'] == alarm_id:
+            alarm['enabled'] = not alarm['enabled']
+            storage.save_alarms(alarms)
+            status = "enabled" if alarm['enabled'] else "disabled"
+            await query.answer(f"Alarm {status}")
+            break
+    
+    # Refresh menu
+    await alarms_menu_callback(update, context)
+
+@restricted  
+async def delete_alarm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Delete an alarm"""
+    query = update.callback_query
+    alarm_id = query.data.split('_')[2]
+    
+    alarms = storage.get_alarms()
+    alarms = [a for a in alarms if a['id'] != alarm_id]
+    storage.save_alarms(alarms)
+    
+    await query.answer("Alarm deleted")
+    
+    # Refresh menu
+    await alarms_menu_callback(update, context)

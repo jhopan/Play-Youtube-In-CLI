@@ -188,6 +188,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "alarms_menu":
         await advanced.alarms_menu_callback(update, context)
         return
+    elif query.data == "add_alarm":
+        await advanced.add_alarm_callback(update, context)
+        return
+    elif query.data == "view_alarms":
+        await advanced.view_alarms_callback(update, context)
+        return
+    elif query.data.startswith("toggle_alarm_"):
+        await advanced.toggle_alarm_callback(update, context)
+        return
+    elif query.data.startswith("delete_alarm_"):
+        await advanced.delete_alarm_callback(update, context)
+        return
     
     # Execute handler
     handler = handlers.get(query.data)

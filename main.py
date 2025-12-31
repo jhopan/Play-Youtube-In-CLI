@@ -141,6 +141,11 @@ def main():
             logger.info(f"✅ Restored {len(player.playlist)} songs from previous session")
         else:
             logger.info("📭 No saved queue found")
+        
+        # Start alarm scheduler
+        from bot.core import alarm_scheduler
+        logger.info("⏰ Starting alarm scheduler...")
+        alarm_scheduler.start(application)
             
     except Exception as e:
         logger.error(f"❌ Failed to connect to Telegram: {e}")
@@ -222,6 +227,11 @@ def main():
     
     # Cleanup (only if clean exit)
     logger.info("🧹 Cleaning up...")
+    
+    # Stop alarm scheduler
+    from bot.core import alarm_scheduler
+    alarm_scheduler.stop()
+    
     MPVPlayer.stop()
     logger.info("✅ Cleanup complete. Goodbye! 👋")
 

@@ -615,6 +615,7 @@ class Keyboards:
         
         alarms = storage.get_alarms()
         alarm_count = len(alarms)
+        enabled_count = sum(1 for a in alarms if a['enabled'])
         
         keyboard = [
             [
@@ -623,16 +624,35 @@ class Keyboards:
                     callback_data="add_alarm"
                 ),
             ],
-            [
+        ]
+        
+        # Show individual alarms if any exist
+        if alarms:
+            keyboard.append([
                 InlineKeyboardButton(
-                    f"📋 View Alarms ({alarm_count})",
+                    f"📋 View All ({alarm_count})",
                     callback_data="view_alarms"
                 ),
-            ],
-            [
-                InlineKeyboardButton("« Back to Settings", callback_data="show_settings"),
-            ],
-        ]
+            ])
+            
+            # Show first 3 alarms
+            for alarm in alarms[:3]:
+                status = "✅" if alarm['enabled'] else "❌"
+                time_str = alarm['time']
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"{status} {time_str}",
+                        callback_data=f"toggle_alarm_{alarm['id']}"
+                    ),
+                    InlineKeyboardButton(
+                        "🗑️",
+                        callback_data=f"delete_alarm_{alarm['id']}"
+                    ),
+                ])
+        
+        keyboard.append([
+            InlineKeyboardButton("« Back to Settings", callback_data="show_settings"),
+        ])
         
         return InlineKeyboardMarkup(keyboard)
     

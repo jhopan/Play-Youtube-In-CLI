@@ -40,7 +40,14 @@ async def handle_url_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Check if we're waiting for input
     waiting_for = context.user_data.get('waiting_for')
-    if not waiting_for:
+    creating_alarm = context.user_data.get('creating_alarm', False)
+    
+    if not waiting_for and not creating_alarm:
+        return
+    
+    # Handle alarm time input
+    if creating_alarm:
+        await handle_alarm_time_input(update, context, message_text)
         return
     
     # Handle playlist name input
@@ -235,3 +242,64 @@ async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAU
     
     context.user_data['waiting_for'] = None
     context.user_data['selected_songs'] = []
+
+
+async def handle_alarm_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE, time_text: str):
+    """Handle alarm time input from user"""
+    username = update.effective_user.username or update.effective_user.first_name
+    
+    # Check for cancel command
+    if time_text.lower() == '/cancel':
+        context.user_data['creating_alarm'] = False
+        await update.message.reply_text(
+            "❌ Alarm creation cancelled",
+            reply_markup=Keyboards.main_menu()
+        )
+        return
+    
+    # Validate time format (HH:MM)
+    import re
+    time_pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$'
+    match = re.match(time_pattern, time_text)
+    
+    if not match:
+        await update.message.reply_text(
+            "❌ Invalid time format!\n\n"
+            "Please use <b>HH:MM</b> format (24-hour)\n"
+            "Examples: 07:00, 14:30, 22:00\n\n"
+            "Send /cancel to cancel",
+            parse_mode='HTML'
+        )
+        return
+    
+    # Generate unique alarm ID
+    import uuid
+    from ..core.storage import storage
+    
+    alarm_id = str(uuid.uuid4())[:8]
+    alarm_data = {
+        'id': alarm_id,
+        'time': time_text,
+        'enabled': True,
+        'days': [],  # Empty means one-time alarm
+        'playlist_name': 'Current Queue',
+        'playlist_url': None
+    }
+    
+    # Add alarm
+    storage.add_alarm(alarm_data)
+    
+    context.user_data['creating_alarm'] = False
+    
+    await update.message.reply_text(
+        f"✅ <b>Alarm Created!</b>\n\n"
+        f"⏰ Time: {time_text}\n"
+        f"📅 Repeat: Once (one-time)\n"
+        f"🎵 Playlist: Current Queue\n\n"
+        f"The alarm will play your current queue at {time_text}.\n"
+        f"You can enable/disable it from the Alarms menu.",
+        reply_markup=Keyboards.main_menu(),
+        parse_mode='HTML'
+    )
+    
+    logger.info(f"✅ @{username} created alarm at {time_text}")
