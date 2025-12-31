@@ -96,6 +96,99 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_toggle_song_selection(query, context)
         return
     
+    # ========================================================================
+    # ADVANCED FEATURES ROUTING
+    # ========================================================================
+    from . import advanced
+    
+    # Queue management
+    if query.data == "queue_management":
+        await advanced.queue_management_callback(update, context)
+        return
+    elif query.data == "queue_remove":
+        await advanced.queue_remove_callback(update, context)
+        return
+    elif query.data.startswith("remove_queue_"):
+        await advanced.remove_queue_song_callback(update, context)
+        return
+    elif query.data.startswith("queue_rm_page_"):
+        # Handle pagination for queue remove
+        await advanced.queue_remove_callback(update, context)
+        return
+    
+    # Favorites
+    elif query.data == "show_favorites":
+        await advanced.show_favorites_callback(update, context)
+        return
+    elif query.data == "toggle_favorite":
+        await advanced.toggle_favorite_callback(update, context)
+        return
+    elif query.data == "view_favorites":
+        await advanced.view_favorites_callback(update, context)
+        return
+    elif query.data.startswith("play_fav_"):
+        await advanced.play_favorite_callback(update, context)
+        return
+    elif query.data.startswith("remove_fav_"):
+        await advanced.remove_favorite_callback(update, context)
+        return
+    elif query.data == "play_all_favorites":
+        await advanced.play_all_favorites_callback(update, context)
+        return
+    elif query.data.startswith("fav_page_"):
+        await advanced.view_favorites_callback(update, context)
+        return
+    
+    # History & Analytics
+    elif query.data == "show_history":
+        await advanced.show_history_callback(update, context)
+        return
+    elif query.data == "view_history":
+        await advanced.view_history_callback(update, context)
+        return
+    elif query.data.startswith("play_history_"):
+        await advanced.play_history_callback(update, context)
+        return
+    elif query.data == "view_top_songs":
+        await advanced.view_top_songs_callback(update, context)
+        return
+    elif query.data == "view_analytics":
+        await advanced.view_analytics_callback(update, context)
+        return
+    elif query.data == "clear_history":
+        await advanced.clear_history_callback(update, context)
+        return
+    elif query.data.startswith("history_page_"):
+        await advanced.view_history_callback(update, context)
+        return
+    
+    # Sleep Timer
+    elif query.data == "sleep_timer_menu":
+        await advanced.sleep_timer_menu_callback(update, context)
+        return
+    elif query.data.startswith("timer_") and query.data != "timer_cancel":
+        await advanced.set_sleep_timer_callback(update, context)
+        return
+    elif query.data == "timer_cancel":
+        await advanced.cancel_sleep_timer_callback(update, context)
+        return
+    
+    # Resolution
+    elif query.data == "change_resolution":
+        await advanced.change_resolution_callback(update, context)
+        return
+    elif query.data.startswith("res_"):
+        await advanced.set_resolution_callback(update, context)
+        return
+    elif query.data == "toggle_fallback":
+        await advanced.toggle_fallback_callback(update, context)
+        return
+    
+    # Alarms
+    elif query.data == "alarms_menu":
+        await advanced.alarms_menu_callback(update, context)
+        return
+    
     # Execute handler
     handler = handlers.get(query.data)
     if handler:
