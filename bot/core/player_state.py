@@ -9,6 +9,7 @@ import os
 from typing import Optional, List, Dict
 from dataclasses import dataclass, asdict
 import subprocess
+from datetime import datetime, timedelta
 
 @dataclass
 class Song:
@@ -17,6 +18,7 @@ class Song:
     title: str
     duration: str = "Unknown"
     audio_quality: str = "Unknown"  # e.g., "128kbps" or "256kbps"
+    resolution: str = "audio"  # "audio", "144p", "360p", "720p"
     
     def __repr__(self):
         return f"Song(title='{self.title}', duration={self.duration})"
@@ -28,6 +30,9 @@ class Song:
     @staticmethod
     def from_dict(data: dict) -> 'Song':
         """Create Song from dictionary"""
+        # Handle old songs without resolution field
+        if 'resolution' not in data:
+            data['resolution'] = 'audio'
         return Song(**data)
 
 
@@ -89,6 +94,14 @@ class PlayerState:
         
         # Audio settings
         self.volume: int = 50
+        
+        # Resolution settings
+        self.preferred_resolution: str = "audio"  # "audio", "144p", "360p", "720p"
+        self.resolution_fallback: bool = True  # Auto fallback if preferred fails
+        
+        # Sleep timer
+        self.sleep_timer_end: Optional[datetime] = None
+        self.sleep_timer_task: Optional[asyncio.Task] = None
         
         # Process management
         self.mpv_process: Optional[subprocess.Popen] = None
@@ -244,6 +257,144 @@ class PlayerState:
             self._save_playlists()
             return True
         return False
+    
+    # ============================================================================
+    # QUEUE MANAGEMENT
+    # ============================================================================
+    
+    def remove_song_from_queue(self, index: int) -> bool:
+        """Remove song at given index from queue"""
+        if 0 <= index < len(self.playlist):
+            # If removing current song, adjust index
+            if index == self.current_index:
+                return False  # Can't remove currently playing song
+            elif index < self.current_index:
+                self.current_index -= 1
+            
+            self.playlist.pop(index)
+            self._auto_save_queue()
+            return True
+        return False
+    
+    def move_song_in_queue(self, from_index: int, to_index: int) -> bool:
+        """Move song from one position to another"""
+        if (0 <= from_index < len(self.playlist) and 
+            0 <= to_index < len(self.playlist) and 
+            from_index != to_index):
+            
+            song = self.playlist.pop(from_index)
+            self.playlist.insert(to_index, song)
+            
+            # Adjust current_index if needed
+            if from_index == self.current_index:
+                self.current_index = to_index
+            elif from_index < self.current_index <= to_index:
+                self.current_index -= 1
+            elif to_index <= self.current_index < from_index:
+                self.current_index += 1
+            
+            self._auto_save_queue()
+            return True
+        return False
+    
+    def clear_queue(self, keep_current: bool = True):
+        """Clear all songs from queue"""
+        if keep_current and self.current_song:
+            current = self.current_song
+            self.playlist = [current]
+            self.current_index = 0
+        else:
+            self.playlist.clear()
+            self.current_index = 0
+            self.is_playing = False
+            self.is_paused = False
+        
+        self._auto_save_queue()
+    
+    # ============================================================================
+    # SLEEP TIMER
+    # ============================================================================
+    
+    def set_sleep_timer(self, minutes: int):
+        """Set sleep timer (auto-stop after X minutes)"""
+        self.sleep_timer_end = datetime.now() + timedelta(minutes=minutes)
+    
+    def cancel_sleep_timer(self):
+        """Cancel sleep timer"""
+        self.sleep_timer_end = None
+        if self.sleep_timer_task:
+            self.sleep_timer_task.cancel()
+            self.sleep_timer_task = None
+    
+    def get_sleep_timer_remaining(self) -> Optional[int]:
+        """Get remaining minutes on sleep timer"""
+        if not self.sleep_timer_end:
+            return None
+        
+        remaining = (self.sleep_timer_end - datetime.now()).total_seconds()
+        if remaining <= 0:
+            return 0
+        return int(remaining / 60)
+    
+    def is_sleep_timer_active(self) -> bool:
+        """Check if sleep timer is active"""
+        if not self.sleep_timer_end:
+            return False
+        return datetime.now() < self.sleep_timer_end
+    
+    # ============================================================================
+    # RESOLUTION MANAGEMENT
+    # ============================================================================
+    
+    def set_resolution(self, resolution: str):
+        """Set preferred resolution"""
+        valid_resolutions = ["audio", "144p", "360p", "720p"]
+        if resolution in valid_resolutions:
+            self.preferred_resolution = resolution
+    
+    def toggle_resolution_fallback(self):
+        """Toggle resolution fallback"""
+        self.resolution_fallback = not self.resolution_fallback
+    
+    # ============================================================================
+    # QUEUE PERSISTENCE
+    # ============================================================================
+    
+    def _auto_save_queue(self):
+        """Auto-save queue state"""
+        from .storage import storage
+        
+        state_data = {
+            'playlist': [song.to_dict() for song in self.playlist],
+            'current_index': self.current_index,
+            'loop_enabled': self.loop_enabled,
+            'loop_mode': self.loop_mode,
+            'shuffle_enabled': self.shuffle_enabled,
+            'volume': self.volume,
+            'preferred_resolution': self.preferred_resolution
+        }
+        storage.save_queue_state(state_data)
+    
+    def restore_queue_state(self) -> bool:
+        """Restore saved queue state"""
+        from .storage import storage
+        
+        state_data = storage.load_queue_state()
+        if not state_data:
+            return False
+        
+        try:
+            self.playlist = [Song.from_dict(s) for s in state_data.get('playlist', [])]
+            self.current_index = state_data.get('current_index', 0)
+            self.loop_enabled = state_data.get('loop_enabled', False)
+            self.loop_mode = state_data.get('loop_mode', 'song')
+            self.shuffle_enabled = state_data.get('shuffle_enabled', False)
+            self.volume = state_data.get('volume', 50)
+            self.preferred_resolution = state_data.get('preferred_resolution', 'audio')
+            return True
+        except Exception as e:
+            print(f"Error restoring queue: {e}")
+            return False
 
 
 # Global player instance

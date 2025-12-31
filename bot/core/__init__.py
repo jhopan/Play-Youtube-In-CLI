@@ -7,6 +7,7 @@ from .player_state import PlayerState, Song, player
 from .mpv_player import MPVPlayer
 from .youtube import YouTubeExtractor
 from .playback import PlaybackManager
+from .storage import StorageManager, storage
 
 __all__ = [
     'PlayerState',
@@ -15,4 +16,6 @@ __all__ = [
     'MPVPlayer',
     'YouTubeExtractor',
     'PlaybackManager',
+    'StorageManager',
+    'storage',
 ]
