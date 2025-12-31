@@ -27,8 +27,13 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 - **🔁 Loop Mode** - 3 modes: Off → Song Loop → Queue Loop (cycle terus)
 - **🔀 Shuffle Mode** - Random playback order
 - **🔊 Volume Control** - Fine-tune dengan +10/-10, preset levels, instant mute
-- **📋 Queue Display** - Lihat playlist current state
+- **📋 Queue Management** - View, reorder, dan remove songs dari queue
+- **⭐ Favorites System** - Simpan lagu favorit, play individual atau semua sekaligus
+- **📊 History & Analytics** - Track playback history dan lihat top songs
+- **⏲️ Sleep Timer** - Auto-stop playback setelah 15/30/60/90/120 menit
+- **🎬 Resolution Selector** - Pilih quality: Audio Only/144p/360p/720p dengan auto-fallback
 - **💾 Song Selection** - Pilih lagu spesifik saat save playlist (up to 10 songs)
+- **🔄 Queue Persistence** - Auto-save dan restore queue state saat bot restart
 - **ℹ️ Info Display** - Comprehensive bot status & current song details
 
 ### 🛡️ Security & Stability
@@ -79,15 +84,30 @@ Play-Youtube-In-CLI/
 │   │   ├── player_state.py     # Singleton player state
 │   │   ├── mpv_player.py       # MPV process control
 │   │   ├── youtube.py          # yt-dlp integration
-│   │   └── playback.py         # Playback orchestration
+│   │   ├── playback.py         # Playback orchestration
+│   │   └── storage.py          # Persistent data storage (NEW)
 │   ├── handlers/          # Telegram handlers
 │   │   ├── commands.py         # /start command
 │   │   ├── callbacks.py        # Button interactions
-│   │   └── messages.py         # URL message processing
+│   │   ├── messages.py         # URL message processing
+│   │   └── advanced.py         # Advanced features handlers (NEW)
 │   └── utils/             # Utilities
 │       ├── keyboards.py        # Inline keyboard layouts
 │       ├── formatters.py       # Message formatting
 │       └── access_control.py   # User authentication
+│
+├── data/                  # Persistent storage (auto-created)
+│   ├── favorites.json          # Saved favorite songs
+│   ├── history.json            # Playback history
+│   ├── analytics.json          # Playback statistics
+│   ├── queue_state.json        # Saved queue state
+│   └── alarms.json             # Scheduled alarms
+│
+├── scripts/               # Setup & management scripts
+│   ├── install_service.sh      # Simple service installer
+│   ├── alias_setup.sh          # Shell aliases creator
+│   ├── start.sh                # Bot startup (systemd-compatible)
+│   └── manage_service.sh       # Service control
 │
 ├── docs/                  # Documentation
 │   ├── INDEX.md                # Documentation navigator
@@ -749,8 +769,85 @@ Bot implements multi-layer access control:
 
 ---
 
-## 📋 Recent Updates
+## � Advanced Features Guide
 
+### ⭐ Favorites System
+
+Simpan lagu favorit untuk quick access:
+
+- **Add to Favorites**: Tekan ⭐ saat song sedang playing
+- **View Favorites**: Akses dari menu utama → Show Favorites
+- **Play Favorite**: Pilih lagu dari list untuk play instantly
+- **Play All Favorites**: Add all favorites ke queue sekaligus
+- **Remove Favorite**: Hapus dari list favorites
+
+### 📊 History & Analytics
+
+Track playback history dan lihat statistik:
+
+- **View History**: Lihat 20 lagu terakhir yang diputar
+- **Replay from History**: Tap lagu untuk play lagi
+- **Top Songs**: Lihat lagu paling sering diputar
+- **Analytics Dashboard**: Total songs, playback count, unique tracks
+- **Clear History**: Reset semua history data
+
+### ⏲️ Sleep Timer
+
+Auto-stop playback setelah waktu tertentu:
+
+- **Timer Options**: 15, 30, 60, 90, atau 120 menit
+- **Status Display**: Lihat remaining time di info menu
+- **Cancel Timer**: Batalkan timer kapan saja
+- **Auto-Stop**: Bot otomatis stop saat timer habis
+
+### 🎬 Resolution Selector
+
+Pilih quality sesuai bandwidth:
+
+- **Audio Only** (default): Best audio quality, minimal data
+- **144p**: Video low quality untuk bandwidth terbatas
+- **360p**: Balanced quality & bandwidth
+- **720p**: High quality video
+- **Auto-Fallback**: Jika preferred resolution gagal, otomatis fallback ke audio only
+
+### 📋 Queue Management
+
+Kontrol penuh atas playback queue:
+
+- **View Queue**: Lihat semua lagu dalam antrian
+- **Remove Songs**: Hapus lagu tertentu dari queue
+- **Move Songs**: (Coming soon) Reorder queue
+- **Clear Queue**: Kosongkan semua queue sekaligus
+- **Auto-Save**: Queue otomatis tersimpan saat bot shutdown
+- **Auto-Restore**: Queue otomatis kembali saat bot startup
+
+### 🔔 Alarms (Coming Soon)
+
+Scheduled playback untuk bangun tidur atau pengingat:
+
+- Set waktu untuk auto-play playlist
+- Multiple alarms support
+- Recurring alarms (daily/weekly)
+
+---
+
+## �📋 Recent Updates
+### v3.0.0 (Jan 2025) - Advanced Features Release 🎉
+
+**Major New Features:**
+- ⭐ **Favorites System**: Simpan dan manage lagu favorit
+- 📊 **History & Analytics**: Track playback history dengan detailed analytics
+- ⏲️ **Sleep Timer**: Auto-stop dengan 5 preset durations (15-120 min)
+- 🎬 **Resolution Selector**: Choose quality (Audio/144p/360p/720p) dengan auto-fallback
+- 📋 **Queue Management**: View, remove, dan clear queue dengan pagination
+- 💾 **Queue Persistence**: Auto-save dan restore queue saat bot restart
+- 🔄 **Advanced Playback**: History tracking dan analytics untuk setiap song
+
+**Technical Improvements:**
+- 🗄️ **Storage System**: JSON-based persistent storage (favorites, history, analytics)
+- 🎯 **Modular Handlers**: Separate advanced.py module untuk better organization
+- 🔧 **Smart Resolution**: Automatic fallback dari video ke audio jika gagal
+- 📈 **Performance**: Efficient pagination untuk large lists
 ### v2.5.0 (Dec 31, 2024)
 
 - 🔁 **3-State Loop Mode**: OFF → Song Loop → Queue Loop
