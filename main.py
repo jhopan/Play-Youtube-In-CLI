@@ -111,6 +111,7 @@ def main():
     logger.info("✓ Signal handlers registered (SIGTERM, SIGINT)")
     
     # Create application with network error handling
+    logger.info("🔌 Connecting to Telegram...")
     application = (
         Application.builder()
         .token(TOKEN)
@@ -124,6 +125,18 @@ def main():
         .build()
     )
     _app_instance = application
+    
+    # Test connection by getting bot info
+    try:
+        import asyncio
+        bot_info = asyncio.get_event_loop().run_until_complete(application.bot.get_me())
+        logger.info(f"✅ Connected to Telegram!")
+        logger.info(f"🤖 Bot: @{bot_info.username} (ID: {bot_info.id})")
+        logger.info(f"📝 Bot Name: {bot_info.first_name}")
+    except Exception as e:
+        logger.error(f"❌ Failed to connect to Telegram: {e}")
+        logger.error("Please check your BOT_TOKEN in .env file")
+        sys.exit(1)
     
     # Add handlers
     logger.info("📋 Registering handlers...")
@@ -150,6 +163,11 @@ def main():
     # Start bot
     logger.info("=" * 60)
     logger.info("🚀 Bot is now running! Press Ctrl+C to stop.")
+    logger.info("=" * 60)
+    logger.info("")
+    logger.info("💡 Send /start to the bot in Telegram to begin")
+    logger.info("📱 Make sure you're using the correct User ID in .env")
+    logger.info("")
     logger.info("=" * 60)
     
     # Infinite retry loop for network resilience

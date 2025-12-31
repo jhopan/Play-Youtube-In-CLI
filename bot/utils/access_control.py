@@ -16,6 +16,11 @@ class AccessControl:
     """Handle user access control"""
     
     @staticmethod
+    def get_allowed_users():
+        """Get list of allowed user IDs"""
+        return ALLOWED_USERS if ALLOWED_USERS else "All users (no restrictions)"
+    
+    @staticmethod
     def check_access(user_id: int) -> bool:
         """
         Check if user has access to the bot
@@ -34,6 +39,7 @@ class AccessControl:
         
         if not has_access:
             logger.warning(f"Access denied for user {user_id}")
+            logger.warning(f"Allowed users: {ALLOWED_USERS}")
         
         return has_access
     

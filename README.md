@@ -264,6 +264,7 @@ You should see:
 ```
 
 **Features:**
+
 - Auto-detects if systemd service is installed
 - Option to start as service or foreground
 - Checks virtual environment
@@ -271,6 +272,7 @@ You should see:
 - Validates .env configuration
 
 **Choose Start Method:**
+
 ```
 Choose start method:
 1. Start as systemd service (recommended)
@@ -284,6 +286,7 @@ Choose start method:
 ```
 
 **Features:**
+
 - Stops systemd service if running
 - Finds and kills Python processes
 - Option to kill MPV player processes
@@ -296,6 +299,7 @@ sudo ./scripts/manage_service.sh
 ```
 
 **Features:**
+
 - Check service status
 - View logs (live or recent)
 - Start/Stop/Restart service
