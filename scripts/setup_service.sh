@@ -159,13 +159,14 @@ echo "🔨 Creating service file..."
 
 if [ "${USE_CUSTOM_SCRIPTS:-false}" = "true" ]; then
     # For services using custom start/stop scripts (like ytmusic-bot)
+    # Use Type=simple since start.sh runs in foreground when called by systemd
     sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=$DESCRIPTION
 After=network.target
 
 [Service]
-Type=forking
+Type=simple
 User=$CURRENT_USER
 WorkingDirectory=$WORKING_DIR
 ExecStart=$EXEC_START

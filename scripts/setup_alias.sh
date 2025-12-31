@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Setup Alias for Systemctl Services
-# This script helps create convenient aliases for managing systemd services
+# Setup Alias for YT Music Bot Service
+# Creates convenient shortcuts for managing the bot
 
 set -e
 
@@ -26,66 +26,53 @@ get_shell_config() {
 
 SHELL_CONFIG=$(get_shell_config)
 
-echo "🔧 Setup Service Alias"
+# Default service configuration for YT Music Bot
+SERVICE_NAME="ytmusic-bot"
+SELECTED_SERVICE="${SERVICE_NAME}.service"
+
+echo "🔧 YT Music Bot - Setup Alias"
 echo "================================"
 echo ""
 echo "What do you want to do?"
 echo ""
-echo "1. Create new alias"
+echo "1. Create/Update aliases"
 echo "2. Check existing aliases"
-echo "3. Delete alias"
+echo "3. Delete aliases"
 echo "0. Cancel"
 echo ""
 read -p "Select option: " OPTION
 
 case "$OPTION" in
     1)
-        # Create new alias - continue to main script
+        # Create/Update aliases - continue to main script
         ;;
     2)
         # Check existing aliases
         echo ""
-        echo "📋 Service aliases in $SHELL_CONFIG:"
+        echo "📋 YT Music Bot aliases in $SHELL_CONFIG:"
         echo ""
-        grep "# Aliases for.*\.service" "$SHELL_CONFIG" 2>/dev/null | sed 's/# Aliases for /  - /' || echo "  No aliases found"
+        if grep -q "# YT Music Bot aliases" "$SHELL_CONFIG" 2>/dev/null; then
+            grep "^alias.*ytmusic" "$SHELL_CONFIG" | sed 's/alias /  /' || echo "  No aliases found"
+        else
+            echo "  No aliases found"
+            echo ""
+            echo "💡 Run option 1 to create aliases"
+        fi
         echo ""
         exit 0
         ;;
     3)
-        # Delete alias
+        # Delete aliases
         echo ""
-        echo "📋 Existing service aliases:"
-        echo ""
-        ALIAS_SERVICES=$(grep "# Aliases for.*\.service" "$SHELL_CONFIG" 2>/dev/null | sed 's/# Aliases for \(.*\) (created.*/\1/' || echo "")
-        
-        if [ -z "$ALIAS_SERVICES" ]; then
-            echo "  No aliases found"
-            exit 0
-        fi
-        
-        mapfile -t ALIAS_ARRAY <<< "$ALIAS_SERVICES"
-        for i in "${!ALIAS_ARRAY[@]}"; do
-            printf "%2d. %s\n" $((i+1)) "${ALIAS_ARRAY[$i]}"
-        done
-        echo ""
-        echo "0. Cancel"
-        echo ""
-        read -p "Select alias to delete: " DEL_NUM
-        
-        if [ "$DEL_NUM" = "0" ]; then
-            echo "❌ Cancelled"
-            exit 0
-        fi
-        
-        if [[ "$DEL_NUM" =~ ^[0-9]+$ ]] && [ "$DEL_NUM" -ge 1 ] && [ "$DEL_NUM" -le "${#ALIAS_ARRAY[@]}" ]; then
-            SELECTED="${ALIAS_ARRAY[$((DEL_NUM-1))]}"
-            sed -i "/# Aliases for $SELECTED/,/^$/d" "$SHELL_CONFIG"
-            echo "✅ Deleted aliases for: $SELECTED"
+        if grep -q "# YT Music Bot aliases" "$SHELL_CONFIG" 2>/dev/null; then
+            sed -i "/# YT Music Bot aliases/,/^$/d" "$SHELL_CONFIG"
+            echo "✅ YT Music Bot aliases deleted"
             echo ""
             echo "🔄 Run: source $SHELL_CONFIG"
         else
-            echo "❌ Invalid selection"
+            echo "⚠️  No YT Music Bot aliases found"
         fi
+        echo ""
         exit 0
         ;;
     0)
@@ -98,96 +85,59 @@ case "$OPTION" in
         ;;
 esac
 
-# Continue with create new alias
+# Continue with create/update aliases
 echo ""
-echo "📋 Scanning active services..."
+echo "🎵 Setting up aliases for YT Music Bot"
 echo ""
 
-# Get list of active services
-ACTIVE_SERVICES=$(systemctl list-units --type=service --state=active | grep "\.service" | awk '{print $1}' | sort)
-
-# Filter out system services, keep only user/custom services
-USER_SERVICES=()
-while IFS= read -r service; do
-    # Skip common system services
-    if [[ ! "$service" =~ ^(getty|systemd|dbus|network|bluetooth|cups|avahi|polkit|udisks|accounts|rtkit|upower|gdm|lightdm|user@|user-runtime) ]]; then
-        USER_SERVICES+=("$service")
-    fi
-done <<< "$ACTIVE_SERVICES"
-
-# If no user services found, show all active services
-if [ ${#USER_SERVICES[@]} -eq 0 ]; then
-    echo "⚠️  No user services found. Showing all active services..."
+# Check if service exists
+if ! systemctl list-unit-files | grep -q "^${SELECTED_SERVICE}"; then
+    echo "⚠️  Service ${SELECTED_SERVICE} not found"
     echo ""
-    USER_SERVICES=($(systemctl list-units --type=service --state=active | grep "\.service" | awk '{print $1}' | sort))
+    read -p "Do you want to create the service first? (y/n): " CREATE_SERVICE
+    
+    if [ "$CREATE_SERVICE" = "y" ] || [ "$CREATE_SERVICE" = "Y" ]; then
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        "$SCRIPT_DIR/setup_service.sh"
+        exit 0
+    else
+        echo "❌ Cancelled - Service must exist before creating aliases"
+        exit 1
+    fi
 fi
 
-# Display active services with numbers
-echo "Active Services (${#USER_SERVICES[@]} found):"
-echo "-------------------"
-for i in "${!USER_SERVICES[@]}"; do
-    SERVICE="${USER_SERVICES[$i]}"
-    printf "%2d. 🟢 %-50s [active]\n" $((i+1)) "$SERVICE"
-done
+# Ask for alias prefix
+read -p "Enter alias prefix (default: ytmusic): " ALIAS_PREFIX
 
-echo ""
-echo "0. Cancel"
-echo ""
-
-# Ask user to select a service
-read -p "Select service number: " SERVICE_NUM
-
-# Validate input
-if [ "$SERVICE_NUM" = "0" ]; then
-    echo "❌ Cancelled"
-    exit 0
+if [ -z "$ALIAS_PREFIX" ]; then
+    ALIAS_PREFIX="ytmusic"
 fi
 
-if ! [[ "$SERVICE_NUM" =~ ^[0-9]+$ ]] || [ "$SERVICE_NUM" -lt 1 ] || [ "$SERVICE_NUM" -gt "${#USER_SERVICES[@]}" ]; then
-    echo "❌ Invalid selection"
-    exit 1
-fi
-
-# Get selected service
-SELECTED_SERVICE="${USER_SERVICES[$((SERVICE_NUM-1))]}"
-SERVICE_NAME="${SELECTED_SERVICE%.service}"
-
-echo ""
-echo "Selected: $SELECTED_SERVICE"
-echo ""
-
-# Ask for alias name
-read -p "Enter alias name (default: $SERVICE_NAME): " ALIAS_NAME
-
-if [ -z "$ALIAS_NAME" ]; then
-    ALIAS_NAME="$SERVICE_NAME"
-fi
-
-# Validate alias name (alphanumeric and underscore/hyphen only)
-if ! [[ "$ALIAS_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "❌ Invalid alias name. Use only letters, numbers, underscore, and hyphen."
+# Validate alias prefix
+if ! [[ "$ALIAS_PREFIX" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "❌ Invalid prefix. Use only letters, numbers, underscore, and hyphen."
     exit 1
 fi
 
 echo ""
-echo "📝 Creating aliases for: $ALIAS_NAME"
+echo "📝 Creating aliases for: $ALIAS_PREFIX"
 echo ""
 
-# Create aliases (all use systemctl - systemd service will handle scripts)
+# Create aliases
 ALIASES="
-# Aliases for $SELECTED_SERVICE (created by setup_alias.sh)
-alias start${ALIAS_NAME}='sudo systemctl start $SELECTED_SERVICE'
-alias stop${ALIAS_NAME}='sudo systemctl stop $SELECTED_SERVICE'
-alias restart${ALIAS_NAME}='sudo systemctl restart $SELECTED_SERVICE'
-alias status${ALIAS_NAME}='sudo systemctl status $SELECTED_SERVICE'
-alias logs${ALIAS_NAME}='sudo journalctl -u $SELECTED_SERVICE -f'
-alias enable${ALIAS_NAME}='sudo systemctl enable $SELECTED_SERVICE'
-alias disable${ALIAS_NAME}='sudo systemctl disable $SELECTED_SERVICE'
+# YT Music Bot aliases (created by setup_alias.sh)
+alias start${ALIAS_PREFIX}='sudo systemctl start $SELECTED_SERVICE'
+alias stop${ALIAS_PREFIX}='sudo systemctl stop $SELECTED_SERVICE'
+alias restart${ALIAS_PREFIX}='sudo systemctl restart $SELECTED_SERVICE'
+alias status${ALIAS_PREFIX}='sudo systemctl status $SELECTED_SERVICE'
+alias logs${ALIAS_PREFIX}='sudo journalctl -u $SELECTED_SERVICE -f'
+alias enable${ALIAS_PREFIX}='sudo systemctl enable $SELECTED_SERVICE'
+alias disable${ALIAS_PREFIX}='sudo systemctl disable $SELECTED_SERVICE'
 "
 
 # Check if aliases already exist
-if grep -q "# Aliases for $SELECTED_SERVICE" "$SHELL_CONFIG" 2>/dev/null; then
-    echo "⚠️  Aliases for $SELECTED_SERVICE already exist in $SHELL_CONFIG"
+if grep -q "# YT Music Bot aliases" "$SHELL_CONFIG" 2>/dev/null; then
+    echo "⚠️  YT Music Bot aliases already exist in $SHELL_CONFIG"
     read -p "Do you want to replace them? (y/n): " REPLACE
     if [ "$REPLACE" != "y" ] && [ "$REPLACE" != "Y" ]; then
         echo "❌ Cancelled"
@@ -195,7 +145,7 @@ if grep -q "# Aliases for $SELECTED_SERVICE" "$SHELL_CONFIG" 2>/dev/null; then
     fi
     
     # Remove old aliases
-    sed -i "/# Aliases for $SELECTED_SERVICE/,/^$/d" "$SHELL_CONFIG"
+    sed -i "/# YT Music Bot aliases/,/^$/d" "$SHELL_CONFIG"
 fi
 
 # Add aliases to shell config
@@ -206,13 +156,13 @@ echo ""
 echo "📝 Added to: $SHELL_CONFIG"
 echo ""
 echo "Available aliases:"
-echo "  start${ALIAS_NAME}      - Start the service"
-echo "  stop${ALIAS_NAME}       - Stop the service"
-echo "  restart${ALIAS_NAME}    - Restart the service"
-echo "  status${ALIAS_NAME}     - Check service status"
-echo "  logs${ALIAS_NAME}       - View live logs"
-echo "  enable${ALIAS_NAME}     - Enable service on boot"
-echo "  disable${ALIAS_NAME}    - Disable service on boot"
+echo "  start${ALIAS_PREFIX}      - Start the bot"
+echo "  stop${ALIAS_PREFIX}       - Stop the bot"
+echo "  restart${ALIAS_PREFIX}    - Restart the bot"
+echo "  status${ALIAS_PREFIX}     - Check bot status"
+echo "  logs${ALIAS_PREFIX}       - View live logs"
+echo "  enable${ALIAS_PREFIX}     - Enable bot on boot"
+echo "  disable${ALIAS_PREFIX}    - Disable bot on boot"
 echo ""
 echo "🔄 To use the aliases now, run:"
 echo "   source $SHELL_CONFIG"

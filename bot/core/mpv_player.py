@@ -71,6 +71,10 @@ class MPVPlayer:
             if MPV_OPTIONS.get('demuxer_max_back_bytes'):
                 cmd.append(f'--demuxer-max-back-bytes={MPV_OPTIONS["demuxer_max_back_bytes"]}')
             
+            # Add retry and reconnect options for better reliability
+            cmd.append('--ytdl-raw-options=retries=5,fragment-retries=5')
+            cmd.append('--stream-lavf-o=reconnect=1,reconnect_streamed=1,reconnect_delay_max=5')
+            
             # Add URL (must be last)
             cmd.append(url)
             

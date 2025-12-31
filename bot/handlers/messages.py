@@ -82,7 +82,7 @@ async def handle_playlist_url(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Handle playlist URL"""
     username = update.effective_user.username or update.effective_user.first_name
     
-    # Show loading message
+    # Show loading message (will be edited to control panel)
     loading_msg = await update.message.reply_text(
         MessageFormatter.loading_message("Loading playlist")
     )
@@ -99,21 +99,18 @@ async def handle_playlist_url(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Add songs to queue
     player.playlist.extend(songs)
     
-    # Update message
+    # Update message to show result
+    result_text = ""
     if was_playing:
-        await loading_msg.edit_text(
+        result_text = (
             f"{EMOJI['success']} <b>Playlist Added to Queue!</b>\n\n"
             f"📋 Added {len(songs)} songs to queue\n"
             f"📊 Total in queue: {len(player.playlist)}\n\n"
-            f"Songs will play after current queue finishes.",
-            parse_mode="HTML"
+            f"Songs will play after current queue finishes."
         )
         logger.info(f"✅ Added {len(songs)} songs to queue for @{username} (Total: {len(player.playlist)})")
     else:
-        await loading_msg.edit_text(
-            MessageFormatter.playlist_loaded(len(songs), len(player.playlist)),
-            parse_mode="HTML"
-        )
+        result_text = MessageFormatter.playlist_loaded(len(songs), len(player.playlist))
         logger.info(f"✅ Loaded {len(songs)} songs from playlist for @{username} (Total: {len(player.playlist)})")
         
         # Auto-start playback ONLY if nothing is playing
@@ -123,19 +120,31 @@ async def handle_playlist_url(update: Update, context: ContextTypes.DEFAULT_TYPE
             asyncio.create_task(PlaybackManager.play_current_song(context.application))
             logger.info(f"▶️ Auto-started playback for @{username}")
     
-    # Show main menu
-    await update.message.reply_text(
-        f"{EMOJI['success']} <b>Control Panel</b>",
-        reply_markup=Keyboards.main_menu(),
-        parse_mode="HTML"
-    )
+    # Edit loading message to show control panel
+    try:
+        await loading_msg.edit_text(
+            f"{EMOJI['success']} <b>Control Panel</b>\n\n{result_text}",
+            reply_markup=Keyboards.main_menu(),
+            parse_mode="HTML"
+        )
+        player.control_menu_message_id = loading_msg.message_id
+    except Exception as e:
+        logger.warning(f"Could not edit message: {e}")
+        # Just update to control panel without result
+        await loading_msg.edit_text(
+            f"{EMOJI['success']} <b>Control Panel</b>",
+            reply_markup=Keyboards.main_menu(),
+            parse_mode="HTML"
+        )
+        player.control_menu_message_id = loading_msg.message_id
+
 
 
 async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str):
     """Handle single video URL"""
     username = update.effective_user.username or update.effective_user.first_name
     
-    # Show loading message
+    # Show loading message (will be edited to control panel)
     loading_msg = await update.message.reply_text(
         MessageFormatter.loading_message("Loading video")
     )
@@ -146,12 +155,6 @@ async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
     song = YouTubeExtractor.get_video_info(url)
     player.playlist.append(song)
     
-    # Update message
-    await loading_msg.edit_text(
-        MessageFormatter.video_added(song, len(player.playlist)),
-        parse_mode="HTML"
-    )
-    
     logger.info(f"✅ Added video for @{username}: '{song.title}' (Position: {len(player.playlist)})")
     
     # Auto-start playback ONLY if nothing is playing
@@ -161,23 +164,18 @@ async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         asyncio.create_task(PlaybackManager.play_current_song(context.application))
         logger.info(f"▶️ Auto-started playback for @{username}")
     
-    # Show/update main menu
-    if player.control_menu_message_id:
-        try:
-            await loading_msg.edit_text(
-                f"{EMOJI['success']} <b>Control Panel</b>",
-                reply_markup=Keyboards.main_menu(),
-                parse_mode="HTML"
-            )
-            player.control_menu_message_id = loading_msg.message_id
-        except Exception:
-            msg = await update.message.reply_text(
-                f"{EMOJI['success']} <b>Control Panel</b>",
-                reply_markup=Keyboards.main_menu(),
-                parse_mode="HTML"
-            )
-            player.control_menu_message_id = msg.message_id
-    else:
+    # Edit loading message to control panel
+    result_text = MessageFormatter.video_added(song, len(player.playlist))
+    try:
+        await loading_msg.edit_text(
+            f"{EMOJI['success']} <b>Control Panel</b>\n\n{result_text}",
+            reply_markup=Keyboards.main_menu(),
+            parse_mode="HTML"
+        )
+        player.control_menu_message_id = loading_msg.message_id
+    except Exception as e:
+        logger.warning(f"Could not edit message: {e}")
+        # Just update to control panel without result
         await loading_msg.edit_text(
             f"{EMOJI['success']} <b>Control Panel</b>",
             reply_markup=Keyboards.main_menu(),

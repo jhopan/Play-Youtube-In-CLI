@@ -48,6 +48,16 @@ class PlaybackManager:
             
             logger.info(f"🎵 Now playing: '{current_song.title}' [{player.current_index + 1}/{len(player.playlist)}]")
             
+            # Get fresh URL from yt-dlp (prevents expiration issues)
+            from .youtube import YouTubeExtractor
+            try:
+                logger.debug(f"🔄 Refreshing URL for: {current_song.url}")
+                fresh_song = YouTubeExtractor.get_video_info(current_song.url)
+                current_song.url = fresh_song.url
+                logger.debug(f"✅ URL refreshed successfully")
+            except Exception as url_error:
+                logger.warning(f"⚠️ Could not refresh URL, using cached: {url_error}")
+            
             # Start new playback
             player.mpv_process = MPVPlayer.start(current_song.url, player.volume)
             player.is_playing = True
@@ -123,7 +133,37 @@ class PlaybackManager:
                 await PlaybackManager.handle_song_finished(application)
             elif process_result != 0:
                 logger.warning(f"⚠️ MPV exited with code {process_result}")
-                player.is_playing = False
+                
+                # Try to recover from MPV error
+                if process_result == 2 and player.is_playing:
+                    logger.info(f"🔄 Attempting recovery from MPV error code 2...")
+                    await asyncio.sleep(2)  # Wait before retry
+                    
+                    # Retry playback once
+                    try:
+                        logger.info(f"🔄 Retrying playback: '{current_song.title}'")
+                        await PlaybackManager.play_current_song(application)
+                    except Exception as retry_error:
+                        logger.error(f"❌ Retry failed: {retry_error}")
+                        player.is_playing = False
+                        
+                        # Edit now playing message to show error
+                        if player.owner_id and player.now_playing_message_id:
+                            try:
+                                await application.bot.edit_message_text(
+                                    chat_id=player.owner_id,
+                                    message_id=player.now_playing_message_id,
+                                    text=f"❌ <b>Playback Error</b>\n\nCould not play: {current_song.title}\n\nSkipping to next song...",
+                                    parse_mode="HTML"
+                                )
+                            except:
+                                pass
+                        
+                        # Skip to next song
+                        await PlaybackManager.handle_song_finished(application)
+                else:
+                    player.is_playing = False
+
             
             return True
             
@@ -210,22 +250,7 @@ class PlaybackManager:
                     logger.info("🔁 Loop enabled (queue mode) - restarting playlist from beginning")
                     player.current_index = 0
                     
-                    # Notify user
-                    if player.owner_id:
-                        try:
-                            await application.bot.send_message(
-                                chat_id=player.owner_id,
-                                text=(
-                                    f"🔁 <b>Queue Loop Enabled!</b>\n\n"
-                                    f"♾️ Restarting playlist from beginning...\n"
-                                    f"📀 Total songs: {len(player.playlist)}\n\n"
-                                    f"Toggle loop to change mode."
-                                ),
-                                parse_mode="HTML"
-                            )
-                        except Exception as e:
-                            logger.error(f"Error sending notification: {e}")
-                    
+                    logger.info("🔁 Loop enabled (queue mode) - restarting playlist from beginning")
                     await asyncio.sleep(1)
                     await PlaybackManager.play_current_song(application)
                 else:
@@ -233,11 +258,12 @@ class PlaybackManager:
                     logger.info("⏹️ Queue finished - stopping playback")
                     player.is_playing = False
                     
-                    # Notify user
-                    if player.owner_id:
+                    # Edit now playing message to show finished status
+                    if player.owner_id and player.now_playing_message_id:
                         try:
-                            await application.bot.send_message(
+                            await application.bot.edit_message_text(
                                 chat_id=player.owner_id,
+                                message_id=player.now_playing_message_id,
                                 text=(
                                     f"✅ <b>Playlist Finished!</b>\n\n"
                                     f"📀 Played all {len(player.playlist)} songs\n\n"
@@ -246,7 +272,8 @@ class PlaybackManager:
                                 parse_mode="HTML"
                             )
                         except Exception as e:
-                            logger.error(f"Error sending notification: {e}")
+                            logger.warning(f"Could not edit message: {e}")
+
                 
                 # Optional: Show YouTube suggestions if enabled
                 if ENABLE_YOUTUBE_SUGGESTIONS:

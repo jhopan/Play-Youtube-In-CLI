@@ -24,11 +24,11 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 
 ### 🎚️ Advanced Features
 
-- **🔁 Loop Mode** - Repeat satu lagu terus-menerus
+- **🔁 Loop Mode** - 3 modes: Off → Song Loop → Queue Loop (cycle terus)
 - **🔀 Shuffle Mode** - Random playback order
 - **🔊 Volume Control** - Fine-tune dengan +10/-10, preset levels, instant mute
 - **📋 Queue Display** - Lihat playlist current state
-- **⏱️ Auto-Next Dialog** - YouTube-style countdown (5 detik) sebelum next song
+- **💾 Song Selection** - Pilih lagu spesifik saat save playlist (up to 10 songs)
 - **ℹ️ Info Display** - Comprehensive bot status & current song details
 
 ### 🛡️ Security & Stability
@@ -42,10 +42,12 @@ Bot Telegram headless untuk streaming musik YouTube di Ubuntu Server tanpa GUI. 
 ### 💫 User Experience
 
 - **Interactive Buttons** - Full UI dengan inline keyboards
-- **Real-time Notifications** - Instant updates saat song changes
+- **Real-time Notifications** - Instant updates saat song changes (edit-in-place, no spam)
 - **HTML Formatting** - Clean UI dengan emoji & formatting
 - **Async Operations** - Non-blocking dengan asyncio
 - **📊 Enhanced Logging** - Detailed terminal logs dengan emoji, user tracking, event monitoring
+- **🔄 Auto-Retry** - MPV error recovery dengan fresh URL extraction
+- **⚡ Smart Queue** - Add to queue tanpa interrupt current song
 
 ---
 
@@ -352,8 +354,11 @@ sudo ./scripts/manage_service.sh
 
 1. Load playlist seperti biasa
 2. Click `💾 Save Playlist`
-3. Beri nama playlist
-4. Playlist tersimpan untuk diputar nanti
+3. **Pilih mode:**
+   - `Save All` - Simpan semua lagu
+   - `Select Songs` - Pilih lagu tertentu (max 10)
+4. Beri nama playlist
+5. Playlist tersimpan untuk diputar nanti
 
 **Play Saved Playlist:**
 
@@ -391,10 +396,13 @@ Current volume: 50%
 
 ### Special Modes
 
-**🔁 Loop Mode:**
+**🔁 Loop Mode (3 States):**
 
-- OFF: Play playlist sequentially
-- ON: Repeat current song infinitely
+- **OFF**: Play playlist sekali saja
+- **Song Loop**: Repeat lagu saat ini terus-menerus
+- **Queue Loop**: Ulangi semua playlist dari awal otomatis
+
+Klik `🔁 Loop` untuk cycle: OFF → Song → Queue → OFF
 
 **🔀 Shuffle Mode:**
 
@@ -403,22 +411,16 @@ Current volume: 50%
 
 ### Auto-Next Feature
 
-When a song finishes:
+When a song finishes, bot automatically plays next song with smooth transition.
 
-```
-🎵 Song Finished!
+**Queue Loop Mode:**
+- Saat playlist habis → Otomatis restart dari awal
+- Tidak ada dialog countdown (seamless loop)
+- Update via "Now Playing" message yang sama (no spam)
 
-▶️ Next: [Song Title]
-
-⏱️ Auto-playing in 5 seconds...
-Press 'Stop' to cancel.
-
-[⏩ Play Next]  [⏹️ Stop]
-```
-
-- **5-second countdown** with real-time updates
-- **Manual override** - Click to skip countdown
-- **Cancellable** - Stop to cancel auto-play
+**Normal Mode:**
+- Playlist habis → Bot stops dengan notifikasi "Playlist Finished"
+- Edit message yang ada (tidak kirim pesan baru)
 
 ### Info Display
 
@@ -438,7 +440,7 @@ Playlist:
 
 Settings:
 🔊 Volume: 75%
-🔁 Loop: OFF
+🔁 Loop: OFF / Song / Queue
 🔀 Shuffle: OFF
 ```
 
@@ -491,42 +493,64 @@ sudo systemctl enable ytmusic_bot
 sudo systemctl start ytmusic_bot
 ```
 
-#### 3. Create Convenient Aliases
+#### 3. Create Convenient Aliases (Optional)
 
-Use the alias setup script to create shortcuts:
+Use the simplified alias setup script:
 
 ```bash
 chmod +x scripts/setup_alias.sh
 ./scripts/setup_alias.sh
 ```
 
-The script will:
+**Features:**
+- No more scanning 47+ services - focused on ytmusic-bot only
+- Quick alias creation with custom prefix (default: `ytmusic`)
+- Check/Delete existing aliases easily
 
-- Show available systemd services
-- Let you choose which service to create aliases for
-- Create convenient aliases like:
-  - `ytmusic-start` - Start the bot
-  - `ytmusic-stop` - Stop the bot
-  - `ytmusic-restart` - Restart the bot
-  - `ytmusic-status` - Check status
-  - `ytmusic-logs` - View live logs
+**Choose an option:**
+```
+1. Create/Update aliases
+2. Check existing aliases  
+3. Delete aliases
+0. Cancel
+```
 
-After setup, you can use short commands instead of full systemctl commands!
+**Available aliases after setup:**
+
+```bash
+startytmusic      # Start the bot
+stopytmusic       # Stop the bot  
+restartytmusic    # Restart the bot
+statusytmusic     # Check bot status
+logsytmusic       # View live logs
+enableytmusic     # Enable on boot
+disableytmusic    # Disable on boot
+```
+
+After setup, reload your shell:
+```bash
+source ~/.bashrc
+```
 
 #### 4. Manage Service
 
 ```bash
-# Using full commands
-sudo systemctl status ytmusic_bot
-sudo journalctl -u ytmusic_bot -f
-sudo systemctl restart ytmusic_bot
-sudo systemctl stop ytmusic_bot
+# Using scripts (easiest)
+./scripts/start.sh        # Start bot
+./scripts/stop.sh         # Stop bot
+./scripts/manage_service.sh  # Full management UI
+
+# Using systemctl directly
+sudo systemctl status ytmusic-bot
+sudo journalctl -u ytmusic-bot -f
+sudo systemctl restart ytmusic-bot
+sudo systemctl stop ytmusic-bot
 
 # Or using aliases (if you ran setup_alias.sh)
-ytmusic-status
-ytmusic-logs
-ytmusic-restart
-ytmusic-stop
+statusytmusic
+logsytmusic
+restartytmusic
+stopytmusic
 ```
 
 ### Update Bot
@@ -730,6 +754,27 @@ Bot implements multi-layer access control:
 ✅ **Run as non-root** - Use regular user account  
 ✅ **Update regularly** - Keep dependencies up-to-date  
 ✅ **Monitor logs** - Watch for unauthorized access attempts
+
+---
+
+## 📋 Recent Updates
+
+### v2.5.0 (Dec 31, 2024)
+- 🔁 **3-State Loop Mode**: OFF → Song Loop → Queue Loop
+- 🎯 **Song Selection**: Pilih lagu spesifik saat save playlist (max 10)
+- 🚫 **No Message Spam**: Edit-in-place untuk semua notifikasi
+- 🔄 **MPV Auto-Retry**: Fresh URL extraction & error recovery
+- ⚡ **Smart Queue**: Add to queue tanpa interrupt current song
+- 🛠️ **Simplified Setup**: setup_alias.sh focused on ytmusic-bot only
+- 🐛 **Service Fix**: Changed Type=forking to Type=simple (no more stuck)
+
+### v2.4.0 (Previous)
+- 📊 Enhanced logging with emoji & user tracking
+- 🔊 Advanced volume control
+- 💾 Playlist save/load functionality
+- 🎮 Improved playback control
+
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full history.
 
 ---
 
