@@ -103,30 +103,34 @@ class AlarmScheduler:
     
     @classmethod
     async def _trigger_alarm(cls, application: Application, alarm: dict):
-        """Trigger an alarm - start playback"""
+        """Trigger an alarm - start playback with ringtone"""
         try:
+            ringtone_name = alarm.get('ringtone_name', 'Current Queue')
+            ringtone_url = alarm.get('ringtone_url')
+            
             # Notify owner
             if player.owner_id:
                 try:
                     await application.bot.send_message(
                         chat_id=player.owner_id,
                         text=f"⏰ <b>Alarm!</b>\n\n"
-                             f"Time: {alarm['time']}\n"
+                             f"🕐 Time: {alarm['time']}\n"
+                             f"🔔 Sound: {ringtone_name}\n\n"
                              f"Starting playback...",
                         parse_mode='HTML'
                     )
                 except Exception as e:
                     logger.error(f"Failed to send alarm notification: {e}")
             
-            # If playlist URL specified, load it
-            playlist_url = alarm.get('playlist_url')
+            # Load ringtone or playlist URL if specified
+            playlist_url = ringtone_url or alarm.get('playlist_url')
             if playlist_url:
                 try:
-                    logger.info(f"Loading playlist from alarm: {playlist_url}")
+                    logger.info(f"Loading alarm sound: {playlist_url}")
                     songs = YouTubeExtractor.extract_playlist(playlist_url)
                     player.playlist = songs
                     player.current_index = 0
-                    logger.info(f"Loaded {len(songs)} songs from alarm playlist")
+                    logger.info(f"Loaded {len(songs)} songs for alarm")
                 except Exception as e:
                     logger.error(f"Failed to load alarm playlist: {e}")
                     # Continue with current queue if load fails

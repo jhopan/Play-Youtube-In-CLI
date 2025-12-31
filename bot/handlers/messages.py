@@ -245,16 +245,33 @@ async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAU
 
 
 async def handle_alarm_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE, time_text: str):
-    """Handle alarm time input from user"""
+    """Handle alarm time input from user - edit message, delete user input"""
     username = update.effective_user.username or update.effective_user.first_name
+    chat_id = update.effective_chat.id
+    alarm_message_id = context.user_data.get('alarm_message_id')
+    
+    # Try to delete user's message immediately
+    try:
+        await update.message.delete()
+    except Exception as e:
+        logger.debug(f"Could not delete user message: {e}")
     
     # Check for cancel command
     if time_text.lower() == '/cancel':
         context.user_data['creating_alarm'] = False
-        await update.message.reply_text(
-            "❌ Alarm creation cancelled",
-            reply_markup=Keyboards.main_menu()
-        )
+        context.user_data['alarm_step'] = None
+        context.user_data['alarm_time'] = None
+        
+        if alarm_message_id:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=alarm_message_id,
+                    text="❌ Alarm creation cancelled",
+                    reply_markup=Keyboards.main_menu()
+                )
+            except:
+                pass
         return
     
     # Validate time format (HH:MM)
@@ -263,43 +280,59 @@ async def handle_alarm_time_input(update: Update, context: ContextTypes.DEFAULT_
     match = re.match(time_pattern, time_text)
     
     if not match:
-        await update.message.reply_text(
-            "❌ Invalid time format!\n\n"
-            "Please use <b>HH:MM</b> format (24-hour)\n"
-            "Examples: 07:00, 14:30, 22:00\n\n"
-            "Send /cancel to cancel",
-            parse_mode='HTML'
-        )
+        # Edit existing message to show error
+        if alarm_message_id:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=alarm_message_id,
+                    text="❌ <b>Invalid time format!</b>\n\n"
+                         f"You sent: <code>{time_text}</code>\n\n"
+                         "Please use <b>HH:MM</b> format (24-hour)\n"
+                         "Examples: 07:00, 14:30, 22:00\n\n"
+                         "<i>Type /cancel to cancel</i>",
+                    parse_mode='HTML'
+                )
+            except:
+                pass
         return
     
-    # Generate unique alarm ID
-    import uuid
-    from ..core.storage import storage
+    # Format time properly (pad with zero)
+    hour, minute = match.groups()
+    formatted_time = f"{int(hour):02d}:{int(minute):02d}"
     
-    alarm_id = str(uuid.uuid4())[:8]
-    alarm_data = {
-        'id': alarm_id,
-        'time': time_text,
-        'enabled': True,
-        'days': [],  # Empty means one-time alarm
-        'playlist_name': 'Current Queue',
-        'playlist_url': None
-    }
+    # Store time and move to step 2 (ringtone selection)
+    context.user_data['alarm_time'] = formatted_time
+    context.user_data['alarm_step'] = 'ringtone'
     
-    # Add alarm
-    storage.add_alarm(alarm_data)
+    # Import ringtones
+    from .advanced import ALARM_RINGTONES
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     
-    context.user_data['creating_alarm'] = False
+    # Build ringtone keyboard
+    keyboard = []
+    for key, ringtone in ALARM_RINGTONES.items():
+        keyboard.append([InlineKeyboardButton(
+            ringtone['name'],
+            callback_data=f"set_ringtone_{key}"
+        )])
     
-    await update.message.reply_text(
-        f"✅ <b>Alarm Created!</b>\n\n"
-        f"⏰ Time: {time_text}\n"
-        f"📅 Repeat: Once (one-time)\n"
-        f"🎵 Playlist: Current Queue\n\n"
-        f"The alarm will play your current queue at {time_text}.\n"
-        f"You can enable/disable it from the Alarms menu.",
-        reply_markup=Keyboards.main_menu(),
-        parse_mode='HTML'
-    )
+    keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="alarms_menu")])
     
-    logger.info(f"✅ @{username} created alarm at {time_text}")
+    # Edit existing message to show ringtone selection
+    if alarm_message_id:
+        try:
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=alarm_message_id,
+                text=f"⏰ <b>Add New Alarm</b>\n\n"
+                     f"<b>Time:</b> {formatted_time} ✅\n\n"
+                     f"<b>Step 2/2:</b> Select alarm sound\n\n"
+                     f"Choose what to play when alarm triggers:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            logger.error(f"Failed to edit alarm message: {e}")
+    
+    logger.info(f"⏰ @{username} set alarm time: {formatted_time}, selecting ringtone")

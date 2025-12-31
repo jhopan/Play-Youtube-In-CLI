@@ -537,18 +537,17 @@ async def alarms_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             time_str = alarm['time']
             enabled = "✅" if alarm['enabled'] else "❌"
             days = ", ".join(alarm['days']) if alarm['days'] else "Once"
-            playlist_name = alarm.get('playlist_name', 'Current Queue')
+            ringtone_name = alarm.get('ringtone_name', '📋 Current Queue')
             
             text += f"{i}. {enabled} <b>{time_str}</b>\n"
             text += f"   📅 {days}\n"
-            text += f"   🎵 {playlist_name}\n\n"
+            text += f"   🔔 {ringtone_name}\n\n"
     else:
         text += "No alarms set.\n\n"
         text += "📌 <b>How to use:</b>\n"
         text += "1. Click 'Add Alarm'\n"
-        text += "2. Send time in HH:MM format (e.g. 07:00)\n"
-        text += "3. Choose playlist or use current queue\n"
-        text += "4. Set repeat days (optional)\n"
+        text += "2. Send time in HH:MM format\n"
+        text += "3. Choose alarm sound\n"
     
     await query.edit_message_text(
         text=text,
@@ -556,22 +555,35 @@ async def alarms_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         parse_mode='HTML'
     )
 
+# Available ringtones (YouTube URLs or local paths)
+ALARM_RINGTONES = {
+    'default': {'name': '🔔 Default Bell', 'url': 'https://www.youtube.com/watch?v=aR9zqepd_qA'},
+    'soft': {'name': '🌊 Soft Waves', 'url': 'https://www.youtube.com/watch?v=bn9F19Hi1Lk'},
+    'upbeat': {'name': '🎵 Upbeat Morning', 'url': 'https://www.youtube.com/watch?v=FTQbiNvZqaY'},
+    'nature': {'name': '🌿 Nature Sounds', 'url': 'https://www.youtube.com/watch?v=eKFTSSKCzWA'},
+    'classic': {'name': '🎻 Classical Wake', 'url': 'https://www.youtube.com/watch?v=NlprozGcs80'},
+    'queue': {'name': '📋 Current Queue', 'url': None},
+}
+
 @restricted
 async def add_alarm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start alarm creation process"""
     query = update.callback_query
     await query.answer()
     
-    # Set context flag for alarm creation
+    # Set context flag for alarm creation - step 1: time input
     context.user_data['creating_alarm'] = True
+    context.user_data['alarm_step'] = 'time'
+    context.user_data['alarm_message_id'] = query.message.message_id
     
     text = "⏰ <b>Add New Alarm</b>\n\n"
-    text += "Please send the time in <b>HH:MM</b> format (24-hour)\n\n"
+    text += "<b>Step 1/2:</b> Set the time\n\n"
+    text += "Send time in <b>HH:MM</b> format (24-hour)\n\n"
     text += "Examples:\n"
     text += "• <code>07:00</code> - 7:00 AM\n"
     text += "• <code>14:30</code> - 2:30 PM\n"
     text += "• <code>22:00</code> - 10:00 PM\n\n"
-    text += "Send /cancel to cancel"
+    text += "<i>Type /cancel to cancel</i>"
     
     await query.edit_message_text(
         text=text,
@@ -645,3 +657,85 @@ async def delete_alarm_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     # Refresh menu
     await alarms_menu_callback(update, context)
+
+
+@restricted
+async def alarm_ringtone_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show ringtone selection for alarm"""
+    query = update.callback_query
+    await query.answer()
+    
+    text = "🔔 <b>Select Alarm Sound</b>\n\n"
+    text += "Choose what to play when alarm triggers:\n\n"
+    
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    
+    keyboard = []
+    for key, ringtone in ALARM_RINGTONES.items():
+        keyboard.append([InlineKeyboardButton(
+            ringtone['name'],
+            callback_data=f"set_ringtone_{key}"
+        )])
+    
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="alarms_menu")])
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='HTML'
+    )
+
+
+@restricted
+async def set_alarm_ringtone_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Set ringtone for alarm being created"""
+    query = update.callback_query
+    ringtone_key = query.data.split('_')[2]
+    
+    if ringtone_key in ALARM_RINGTONES:
+        ringtone = ALARM_RINGTONES[ringtone_key]
+        alarm_time = context.user_data.get('alarm_time')
+        
+        if not alarm_time:
+            await query.answer("❌ No alarm time set", show_alert=True)
+            return
+        
+        # Create alarm with ringtone
+        import uuid
+        alarm_id = str(uuid.uuid4())[:8]
+        alarm_data = {
+            'id': alarm_id,
+            'time': alarm_time,
+            'enabled': True,
+            'days': [],
+            'ringtone': ringtone_key,
+            'ringtone_name': ringtone['name'],
+            'ringtone_url': ringtone['url'],
+            'playlist_name': ringtone['name'] if ringtone['url'] else 'Current Queue',
+            'playlist_url': ringtone['url']
+        }
+        
+        storage.add_alarm(alarm_data)
+        
+        # Clear context
+        context.user_data['creating_alarm'] = False
+        context.user_data['alarm_step'] = None
+        context.user_data['alarm_time'] = None
+        
+        await query.answer("✅ Alarm created!")
+        
+        text = f"✅ <b>Alarm Created!</b>\n\n"
+        text += f"⏰ Time: {alarm_time}\n"
+        text += f"🔔 Sound: {ringtone['name']}\n"
+        text += f"📅 Repeat: Once\n\n"
+        text += "<i>Go to Alarms menu to manage</i>"
+        
+        await query.edit_message_text(
+            text=text,
+            reply_markup=Keyboards.alarms_menu(),
+            parse_mode='HTML'
+        )
+        
+        logger.info(f"⏰ Alarm created: {alarm_time} with ringtone {ringtone_key}")
+    else:
+        await query.answer("❌ Invalid ringtone", show_alert=True)

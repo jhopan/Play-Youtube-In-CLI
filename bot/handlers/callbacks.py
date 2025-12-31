@@ -200,6 +200,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data.startswith("delete_alarm_"):
         await advanced.delete_alarm_callback(update, context)
         return
+    elif query.data == "alarm_ringtone":
+        await advanced.alarm_ringtone_callback(update, context)
+        return
+    elif query.data.startswith("set_ringtone_"):
+        await advanced.set_alarm_ringtone_callback(update, context)
+        return
     
     # Execute handler
     handler = handlers.get(query.data)
