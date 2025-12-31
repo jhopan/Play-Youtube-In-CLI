@@ -107,6 +107,17 @@ class Keyboards:
                     callback_data="show_settings"
                 ),
             ],
+            # Row 7: New Features
+            [
+                InlineKeyboardButton(
+                    "⭐ Favorites",
+                    callback_data="show_favorites"
+                ),
+                InlineKeyboardButton(
+                    "📊 History",
+                    callback_data="show_history"
+                ),
+            ],
         ]
         
         return InlineKeyboardMarkup(keyboard)
@@ -211,23 +222,8 @@ class Keyboards:
     
     @staticmethod
     def settings_menu(yt_suggestions_enabled: bool = True) -> InlineKeyboardMarkup:
-        """Settings menu keyboard"""
-        # Dynamic emoji based on state
-        yt_status = "✅ ON" if yt_suggestions_enabled else "❌ OFF"
-        
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    f"📺 YouTube Suggestions: {yt_status}",
-                    callback_data="toggle_yt_suggestions"
-                ),
-            ],
-            [
-                InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
-            ],
-        ]
-        
-        return InlineKeyboardMarkup(keyboard)
+        """Settings menu keyboard (redirects to extended version)"""
+        return Keyboards.settings_menu_extended()
     
     @staticmethod
     def cancel_save_playlist() -> InlineKeyboardMarkup:
@@ -299,6 +295,388 @@ class Keyboards:
         
         keyboard.append([
             InlineKeyboardButton("❌ Cancel", callback_data="cancel_save_playlist")
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)    
+    # ============================================================================
+    # NEW FEATURE KEYBOARDS
+    # ============================================================================
+    
+    @staticmethod
+    def queue_management_menu() -> InlineKeyboardMarkup:
+        """Queue management keyboard"""
+        from ..core.storage import storage
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "🗑️ Remove Song",
+                    callback_data="queue_remove"
+                ),
+                InlineKeyboardButton(
+                    "🔄 Move Song",
+                    callback_data="queue_move"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "🧹 Clear Queue",
+                    callback_data="clear_queue"
+                ),
+                InlineKeyboardButton(
+                    "📜 Full Queue",
+                    callback_data="show_queue"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def favorites_menu() -> InlineKeyboardMarkup:
+        """Favorites management keyboard"""
+        from ..core.storage import storage
+        
+        # Check if current song is favorite
+        is_fav = False
+        if player.current_song:
+            is_fav = storage.is_favorite(player.current_song.url)
+        
+        fav_count = len(storage.get_favorites())
+        like_text = "💔 Unlike Current" if is_fav else "❤️ Like Current"
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    like_text,
+                    callback_data="toggle_favorite"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"📜 View Favorites ({fav_count})",
+                    callback_data="view_favorites"
+                ),
+                InlineKeyboardButton(
+                    "▶️ Play All",
+                    callback_data="play_all_favorites"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def favorites_list_menu(favorites: list, page: int = 0) -> InlineKeyboardMarkup:
+        """Display list of favorite songs"""
+        keyboard = []
+        items_per_page = 8
+        start_idx = page * items_per_page
+        end_idx = start_idx + items_per_page
+        
+        page_favorites = favorites[start_idx:end_idx]
+        
+        for i, fav in enumerate(page_favorites):
+            idx = start_idx + i
+            title = fav['title'][:35] + "..." if len(fav['title']) > 35 else fav['title']
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"🎵 {title}",
+                    callback_data=f"play_fav_{idx}"
+                ),
+                InlineKeyboardButton(
+                    "🗑️",
+                    callback_data=f"remove_fav_{idx}"
+                ),
+            ])
+        
+        # Pagination
+        nav_buttons = []
+        total_pages = (len(favorites) + items_per_page - 1) // items_per_page
+        
+        if page > 0:
+            nav_buttons.append(
+                InlineKeyboardButton("◀️ Prev", callback_data=f"fav_page_{page-1}")
+            )
+        if page < total_pages - 1:
+            nav_buttons.append(
+                InlineKeyboardButton("Next ▶️", callback_data=f"fav_page_{page+1}")
+            )
+        
+        if nav_buttons:
+            keyboard.append(nav_buttons)
+        
+        keyboard.append([
+            InlineKeyboardButton("« Back", callback_data="show_favorites")
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def history_menu() -> InlineKeyboardMarkup:
+        """History and analytics keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "📜 Recent History",
+                    callback_data="view_history"
+                ),
+                InlineKeyboardButton(
+                    "📈 Top Played",
+                    callback_data="view_top_songs"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "📊 Analytics",
+                    callback_data="view_analytics"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "🗑️ Clear History",
+                    callback_data="clear_history"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def history_list_menu(history: list, page: int = 0) -> InlineKeyboardMarkup:
+        """Display playback history"""
+        keyboard = []
+        items_per_page = 8
+        start_idx = page * items_per_page
+        end_idx = start_idx + items_per_page
+        
+        page_history = history[start_idx:end_idx]
+        
+        for i, item in enumerate(page_history):
+            idx = start_idx + i
+            title = item['title'][:35] + "..." if len(item['title']) > 35 else item['title']
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"🎵 {title}",
+                    callback_data=f"play_history_{idx}"
+                )
+            ])
+        
+        # Pagination
+        nav_buttons = []
+        total_pages = (len(history) + items_per_page - 1) // items_per_page
+        
+        if page > 0:
+            nav_buttons.append(
+                InlineKeyboardButton("◀️ Prev", callback_data=f"history_page_{page-1}")
+            )
+        if page < total_pages - 1:
+            nav_buttons.append(
+                InlineKeyboardButton("Next ▶️", callback_data=f"history_page_{page+1}")
+            )
+        
+        if nav_buttons:
+            keyboard.append(nav_buttons)
+        
+        keyboard.append([
+            InlineKeyboardButton("« Back", callback_data="show_history")
+        ])
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def settings_menu_extended() -> InlineKeyboardMarkup:
+        """Extended settings menu with new features"""
+        # Get current settings
+        resolution_text = player.preferred_resolution.upper() if player.preferred_resolution != "audio" else "Audio Only"
+        fallback_status = "ON ✅" if player.resolution_fallback else "OFF ❌"
+        
+        # Sleep timer status
+        timer_remaining = player.get_sleep_timer_remaining()
+        if timer_remaining and timer_remaining > 0:
+            timer_text = f"⏰ Timer: {timer_remaining}min"
+        else:
+            timer_text = "⏰ Sleep Timer"
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    f"🎬 Resolution: {resolution_text}",
+                    callback_data="change_resolution"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"🔄 Fallback: {fallback_status}",
+                    callback_data="toggle_fallback"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    timer_text,
+                    callback_data="sleep_timer_menu"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "⏲️ Alarms",
+                    callback_data="alarms_menu"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"📺 YT Suggestions: {'ON ✅' if player.yt_suggestions_enabled else 'OFF ❌'}",
+                    callback_data="toggle_yt_suggestions"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Menu", callback_data="back_to_main"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def resolution_selector_menu() -> InlineKeyboardMarkup:
+        """Resolution selection keyboard"""
+        current = player.preferred_resolution
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    f"{'✅ ' if current == 'audio' else ''}🎵 Audio Only",
+                    callback_data="res_audio"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"{'✅ ' if current == '144p' else ''}📱 144p (Low)",
+                    callback_data="res_144p"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"{'✅ ' if current == '360p' else ''}💻 360p (Standard)",
+                    callback_data="res_360p"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"{'✅ ' if current == '720p' else ''}📺 720p (HD)",
+                    callback_data="res_720p"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Settings", callback_data="show_settings"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def sleep_timer_menu() -> InlineKeyboardMarkup:
+        """Sleep timer selection keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("⏰ 15 min", callback_data="timer_15"),
+                InlineKeyboardButton("⏰ 30 min", callback_data="timer_30"),
+            ],
+            [
+                InlineKeyboardButton("⏰ 45 min", callback_data="timer_45"),
+                InlineKeyboardButton("⏰ 60 min", callback_data="timer_60"),
+            ],
+            [
+                InlineKeyboardButton("⏰ 90 min", callback_data="timer_90"),
+                InlineKeyboardButton("⏰ 120 min", callback_data="timer_120"),
+            ],
+            [
+                InlineKeyboardButton("❌ Cancel Timer", callback_data="timer_cancel"),
+            ],
+            [
+                InlineKeyboardButton("« Back to Settings", callback_data="show_settings"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def alarms_menu() -> InlineKeyboardMarkup:
+        """Alarms management keyboard"""
+        from ..core.storage import storage
+        
+        alarms = storage.get_alarms()
+        alarm_count = len(alarms)
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "➕ Add Alarm",
+                    callback_data="add_alarm"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"📋 View Alarms ({alarm_count})",
+                    callback_data="view_alarms"
+                ),
+            ],
+            [
+                InlineKeyboardButton("« Back to Settings", callback_data="show_settings"),
+            ],
+        ]
+        
+        return InlineKeyboardMarkup(keyboard)
+    
+    @staticmethod
+    def queue_remove_menu(page: int = 0) -> InlineKeyboardMarkup:
+        """Select song to remove from queue"""
+        keyboard = []
+        items_per_page = 8
+        start_idx = page * items_per_page
+        end_idx = min(start_idx + items_per_page, len(player.playlist))
+        
+        for i in range(start_idx, end_idx):
+            if i == player.current_index:
+                continue  # Skip current song
+            
+            song = player.playlist[i]
+            title = song.title[:30] + "..." if len(song.title) > 30 else song.title
+            marker = "🔊" if i == player.current_index else "  "
+            
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{marker}{i+1}. {title}",
+                    callback_data=f"remove_queue_{i}"
+                )
+            ])
+        
+        # Pagination
+        nav_buttons = []
+        total_pages = (len(player.playlist) + items_per_page - 1) // items_per_page
+        
+        if page > 0:
+            nav_buttons.append(
+                InlineKeyboardButton("◀️ Prev", callback_data=f"queue_rm_page_{page-1}")
+            )
+        if page < total_pages - 1:
+            nav_buttons.append(
+                InlineKeyboardButton("Next ▶️", callback_data=f"queue_rm_page_{page+1}")
+            )
+        
+        if nav_buttons:
+            keyboard.append(nav_buttons)
+        
+        keyboard.append([
+            InlineKeyboardButton("« Back", callback_data="queue_management")
         ])
         
         return InlineKeyboardMarkup(keyboard)
