@@ -16,6 +16,7 @@ class Song:
     url: str
     title: str
     duration: str = "Unknown"
+    audio_quality: str = "Unknown"  # e.g., "128kbps" or "256kbps"
     
     def __repr__(self):
         return f"Song(title='{self.title}', duration={self.duration})"
@@ -94,6 +95,10 @@ class PlayerState:
         
         # User management
         self.owner_id: Optional[int] = None
+        
+        # Message management (untuk edit message instead of send new)
+        self.now_playing_message_id: Optional[int] = None
+        self.control_menu_message_id: Optional[int] = None
         
         # Async task management
         self.playback_task: Optional[asyncio.Task] = None

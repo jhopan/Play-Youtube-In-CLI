@@ -61,17 +61,51 @@ class PlaybackManager:
                     current = player.current_index + 1
                     progress = "▰" * current + "▱" * (total - current) if total <= 20 else f"{current}/{total}"
                     
-                    await application.bot.send_message(
-                        chat_id=player.owner_id,
-                        text=(
-                            f"{EMOJI['now_playing']} <b>Now Playing:</b>\n\n"
-                            f"🎵 <b>{current_song.title}</b>\n"
-                            f"⏱️ {current_song.duration}\n\n"
-                            f"📊 Position: {current}/{total}\n"
-                            f"▰▱ {progress}"
-                        ),
-                        parse_mode="HTML"
+                    # Format duration (convert seconds to MM:SS)
+                    duration_str = current_song.duration
+                    try:
+                        duration_sec = int(current_song.duration) if current_song.duration.isdigit() else 0
+                        if duration_sec > 0:
+                            minutes = duration_sec // 60
+                            seconds = duration_sec % 60
+                            duration_str = f"{minutes}:{seconds:02d}"
+                    except:
+                        duration_str = current_song.duration
+                    
+                    now_playing_text = (
+                        f"{EMOJI['now_playing']} <b>Now Playing:</b>\n\n"
+                        f"🎵 <b>{current_song.title}</b>\n"
+                        f"⏱️ Duration: {duration_str}\n"
+                        f"🎧 Quality: {current_song.audio_quality}\n\n"
+                        f"📊 Position: {current}/{total}\n"
+                        f"▰▱ {progress}"
                     )
+                    
+                    # Edit existing message or send new one
+                    if player.now_playing_message_id:
+                        try:
+                            await application.bot.edit_message_text(
+                                chat_id=player.owner_id,
+                                message_id=player.now_playing_message_id,
+                                text=now_playing_text,
+                                parse_mode="HTML"
+                            )
+                        except Exception as edit_error:
+                            logger.warning(f"Could not edit message, sending new: {edit_error}")
+                            msg = await application.bot.send_message(
+                                chat_id=player.owner_id,
+                                text=now_playing_text,
+                                parse_mode="HTML"
+                            )
+                            player.now_playing_message_id = msg.message_id
+                    else:
+                        msg = await application.bot.send_message(
+                            chat_id=player.owner_id,
+                            text=now_playing_text,
+                            parse_mode="HTML"
+                        )
+                        player.now_playing_message_id = msg.message_id
+                        
                 except Exception as e:
                     logger.error(f"❌ Error sending notification: {e}")
             

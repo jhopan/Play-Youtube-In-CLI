@@ -42,10 +42,15 @@ class YouTubeExtractor:
                     songs = []
                     for entry in info['entries']:
                         if entry:
+                            # Get duration in seconds
+                            duration = entry.get('duration', 0)
+                            duration_str = str(duration) if duration else "Unknown"
+                            
                             song = Song(
                                 url=f"https://www.youtube.com/watch?v={entry['id']}",
                                 title=entry.get('title', 'Unknown Title'),
-                                duration=str(entry.get('duration', 'Unknown'))
+                                duration=duration_str,
+                                audio_quality="Audio Only"  # Will be determined during playback
                             )
                             songs.append(song)
                     
@@ -53,10 +58,14 @@ class YouTubeExtractor:
                     return songs
                 else:
                     # Single video
+                    duration = info.get('duration', 0)
+                    duration_str = str(duration) if duration else "Unknown"
+                    
                     song = Song(
                         url=url,
                         title=info.get('title', 'Unknown Title'),
-                        duration=str(info.get('duration', 'Unknown'))
+                        duration=duration_str,
+                        audio_quality="Audio Only"
                     )
                     logger.info(f"Extracted single video: {song.title}")
                     return [song]
@@ -91,10 +100,24 @@ class YouTubeExtractor:
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
+                
+                duration = info.get('duration', 0)
+                duration_str = str(duration) if duration else "Unknown"
+                
+                # Try to get audio quality from format info
+                audio_quality = "Audio Only"
+                if 'format' in info and info['format']:
+                    format_str = info['format']
+                    if 'audio only' in format_str.lower():
+                        # Extract bitrate if available
+                        if 'abr' in info and info['abr']:
+                            audio_quality = f"{int(info['abr'])}kbps"
+                
                 song = Song(
                     url=url,
                     title=info.get('title', 'Unknown Title'),
-                    duration=str(info.get('duration', 'Unknown'))
+                    duration=duration_str,
+                    audio_quality=audio_quality
                 )
                 logger.info(f"Got video info: {song.title}")
                 return song

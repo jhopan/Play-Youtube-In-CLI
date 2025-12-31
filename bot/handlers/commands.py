@@ -46,6 +46,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         one_time_keyboard=False
     )
     
+    from ..core.player_state import player
+    
     # Send welcome message
     await update.message.reply_text(
         MessageFormatter.welcome_message(),
@@ -53,11 +55,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
     
-    # Send inline menu buttons
-    await update.message.reply_text(
+    # Send inline menu buttons and save message_id
+    msg = await update.message.reply_text(
         "Select an action:",
         reply_markup=Keyboards.main_menu(),
         parse_mode="HTML"
     )
+    player.control_menu_message_id = msg.message_id
     
     logger.info(f"✅ Welcome message sent to @{username}")

@@ -363,6 +363,8 @@ async def handle_back_to_main(query, context):
         reply_markup=Keyboards.main_menu(),
         parse_mode="HTML"
     )
+    # Update control menu message_id
+    player.control_menu_message_id = query.message.message_id
     logger.info(f"↩️ @{username} returned to main menu")
 
 

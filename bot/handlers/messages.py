@@ -161,12 +161,29 @@ async def handle_video_url(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         asyncio.create_task(PlaybackManager.play_current_song(context.application))
         logger.info(f"▶️ Auto-started playback for @{username}")
     
-    # Show main menu
-    await update.message.reply_text(
-        f"{EMOJI['success']} <b>Control Panel</b>",
-        reply_markup=Keyboards.main_menu(),
-        parse_mode="HTML"
-    )
+    # Show/update main menu
+    if player.control_menu_message_id:
+        try:
+            await loading_msg.edit_text(
+                f"{EMOJI['success']} <b>Control Panel</b>",
+                reply_markup=Keyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            player.control_menu_message_id = loading_msg.message_id
+        except Exception:
+            msg = await update.message.reply_text(
+                f"{EMOJI['success']} <b>Control Panel</b>",
+                reply_markup=Keyboards.main_menu(),
+                parse_mode="HTML"
+            )
+            player.control_menu_message_id = msg.message_id
+    else:
+        await loading_msg.edit_text(
+            f"{EMOJI['success']} <b>Control Panel</b>",
+            reply_markup=Keyboards.main_menu(),
+            parse_mode="HTML"
+        )
+        player.control_menu_message_id = loading_msg.message_id
 
 
 async def handle_playlist_name_input(update: Update, context: ContextTypes.DEFAULT_TYPE, name: str):
