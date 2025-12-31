@@ -821,13 +821,17 @@ Kontrol penuh atas playback queue:
 - **Auto-Save**: Queue otomatis tersimpan saat bot shutdown
 - **Auto-Restore**: Queue otomatis kembali saat bot startup
 
-### 🔔 Alarms (Coming Soon)
+### 🔔 Alarms
 
 Scheduled playback untuk bangun tidur atau pengingat:
 
-- Set waktu untuk auto-play playlist
-- Multiple alarms support
-- Recurring alarms (daily/weekly)
+- **Add Alarm**: Set waktu dalam format HH:MM (24-hour)
+- **Enable/Disable**: Toggle alarm on/off tanpa menghapus
+- **One-time Alarms**: Play sekali lalu auto-disable
+- **Recurring Alarms**: (Coming soon) Daily/weekly repeat
+- **Playlist Support**: (Coming soon) Specify playlist untuk setiap alarm
+- **Smart Scheduling**: Background task cek setiap 10 detik
+- **Auto-notification**: Owner akan dapat notif saat alarm trigger
 
 ---
 
@@ -841,12 +845,14 @@ Scheduled playback untuk bangun tidur atau pengingat:
 - 🎬 **Resolution Selector**: Choose quality (Audio/144p/360p/720p) dengan auto-fallback
 - 📋 **Queue Management**: View, remove, dan clear queue dengan pagination
 - 💾 **Queue Persistence**: Auto-save dan restore queue saat bot restart
+- � **Alarms System**: Scheduled playback dengan background scheduler
 - 🔄 **Advanced Playback**: History tracking dan analytics untuk setiap song
 
 **Technical Improvements:**
-- 🗄️ **Storage System**: JSON-based persistent storage (favorites, history, analytics)
+- 🗄️ **Storage System**: JSON-based persistent storage (favorites, history, analytics, alarms)
 - 🎯 **Modular Handlers**: Separate advanced.py module untuk better organization
 - 🔧 **Smart Resolution**: Automatic fallback dari video ke audio jika gagal
+- ⏰ **Background Scheduler**: Alarm checker runs every 10 seconds
 - 📈 **Performance**: Efficient pagination untuk large lists
 ### v2.5.0 (Dec 31, 2024)
 
