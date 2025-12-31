@@ -46,22 +46,62 @@ class PlaybackManager:
             # Stop any existing playback
             MPVPlayer.stop()
             
+            # Check sleep timer before starting new song
+            if player.check_sleep_timer():
+                logger.info("⏲️ Sleep timer expired, stopping playback")
+                player.is_playing = False
+                if player.owner_id:
+                    try:
+                        await application.bot.send_message(
+                            chat_id=player.owner_id,
+                            text=f"{EMOJI['sleep']} Sleep timer expired. Playback stopped.",
+                            parse_mode="HTML"
+                        )
+                    except Exception as e:
+                        logger.error(f"Error sending sleep timer notification: {e}")
+                return False
+            
             logger.info(f"🎵 Now playing: '{current_song.title}' [{player.current_index + 1}/{len(player.playlist)}]")
             
             # Get fresh URL from yt-dlp (prevents expiration issues)
             from .youtube import YouTubeExtractor
             try:
                 logger.debug(f"🔄 Refreshing URL for: {current_song.url}")
-                fresh_song = YouTubeExtractor.get_video_info(current_song.url)
+                fresh_song = YouTubeExtractor.get_video_info(
+                    current_song.url,
+                    preferred_resolution=player.preferred_resolution
+                )
                 current_song.url = fresh_song.url
-                logger.debug(f"✅ URL refreshed successfully")
+                current_song.audio_quality = fresh_song.audio_quality
+                logger.debug(f"✅ URL refreshed successfully ({player.preferred_resolution})")
             except Exception as url_error:
-                logger.warning(f"⚠️ Could not refresh URL, using cached: {url_error}")
+                logger.warning(f"⚠️ Could not refresh URL with {player.preferred_resolution}, using cached: {url_error}")
+                
+                # Try fallback to audio only if enabled and not already audio
+                if player.resolution_fallback and player.preferred_resolution != "audio":
+                    try:
+                        logger.info(f"🔄 Trying fallback to audio only...")
+                        fresh_song = YouTubeExtractor.get_video_info(current_song.url, preferred_resolution="audio")
+                        current_song.url = fresh_song.url
+                        current_song.audio_quality = fresh_song.audio_quality
+                        logger.info(f"✅ Fallback successful")
+                    except Exception as fallback_error:
+                        logger.warning(f"⚠️ Fallback also failed: {fallback_error}")
             
             # Start new playback
             player.mpv_process = MPVPlayer.start(current_song.url, player.volume)
             player.is_playing = True
             player.is_paused = False
+            
+            # Track in history and analytics
+            try:
+                from .storage import Storage
+                storage = Storage()
+                storage.add_to_history(current_song)
+                storage.update_analytics(current_song)
+                logger.debug(f"📊 Added to history and analytics: {current_song.title}")
+            except Exception as track_error:
+                logger.warning(f"⚠️ Could not track song: {track_error}")
             
             # Notify user
             if player.owner_id:

@@ -133,6 +133,15 @@ def main():
         logger.info(f"✅ Connected to Telegram!")
         logger.info(f"🤖 Bot: @{bot_info.username} (ID: {bot_info.id})")
         logger.info(f"📝 Bot Name: {bot_info.first_name}")
+        
+        # Restore saved queue state
+        logger.info("🔄 Restoring saved queue state...")
+        player.restore_queue_state()
+        if player.playlist:
+            logger.info(f"✅ Restored {len(player.playlist)} songs from previous session")
+        else:
+            logger.info("📭 No saved queue found")
+            
     except Exception as e:
         logger.error(f"❌ Failed to connect to Telegram: {e}")
         logger.error("Please check your BOT_TOKEN in .env file")

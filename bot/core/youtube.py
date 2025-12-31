@@ -81,12 +81,13 @@ class YouTubeExtractor:
             raise
     
     @staticmethod
-    def get_video_info(url: str) -> Song:
+    def get_video_info(url: str, preferred_resolution: str = "audio") -> Song:
         """
-        Get info for a single video
+        Get info for a single video with specified resolution
         
         Args:
             url: YouTube video URL
+            preferred_resolution: "audio", "144p", "360p", or "720p"
         
         Returns:
             Song object
@@ -98,6 +99,19 @@ class YouTubeExtractor:
             ydl_opts = YTDL_OPTIONS.copy()
             ydl_opts['extract_flat'] = False
             
+            # Set format based on resolution preference
+            if preferred_resolution == "audio":
+                ydl_opts['format'] = 'bestaudio/best'
+            elif preferred_resolution == "144p":
+                ydl_opts['format'] = 'worst[height<=144]/bestaudio/best'
+            elif preferred_resolution == "360p":
+                ydl_opts['format'] = 'best[height<=360]/bestaudio/best'
+            elif preferred_resolution == "720p":
+                ydl_opts['format'] = 'best[height<=720]/bestaudio/best'
+            else:
+                # Fallback to audio only
+                ydl_opts['format'] = 'bestaudio/best'
+            
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 
@@ -105,13 +119,16 @@ class YouTubeExtractor:
                 duration_str = str(duration) if duration else "Unknown"
                 
                 # Try to get audio quality from format info
-                audio_quality = "Audio Only"
+                audio_quality = preferred_resolution.upper() if preferred_resolution != "audio" else "Audio Only"
                 if 'format' in info and info['format']:
                     format_str = info['format']
                     if 'audio only' in format_str.lower():
                         # Extract bitrate if available
                         if 'abr' in info and info['abr']:
                             audio_quality = f"{int(info['abr'])}kbps"
+                    elif 'height' in info:
+                        # Video format
+                        audio_quality = f"{info['height']}p"
                 
                 song = Song(
                     url=url,
@@ -119,7 +136,7 @@ class YouTubeExtractor:
                     duration=duration_str,
                     audio_quality=audio_quality
                 )
-                logger.info(f"Got video info: {song.title}")
+                logger.info(f"Got video info ({preferred_resolution}): {song.title}")
                 return song
                 
         except Exception as e:
