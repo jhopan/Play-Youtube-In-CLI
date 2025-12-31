@@ -10,19 +10,28 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   🎵 YT Music Bot Starter              ║${NC}"
-echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
-echo ""
-
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Detect if running from systemd (no interactive terminal)
+if [ -t 1 ]; then
+    INTERACTIVE=true
+else
+    INTERACTIVE=false
+fi
+
+if [ "$INTERACTIVE" = true ]; then
+    echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║   🎵 YT Music Bot Starter              ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+    echo ""
+fi
+
 # Check if running as systemd service
 SERVICE_NAME="ytmusic_bot"
 
-if systemctl list-unit-files | grep -q "^${SERVICE_NAME}.service"; then
+if [ "$INTERACTIVE" = true ] && systemctl list-unit-files | grep -q "^${SERVICE_NAME}.service"; then
     echo -e "${YELLOW}📋 Systemd service detected${NC}"
     echo ""
     echo "Choose start method:"
@@ -69,54 +78,70 @@ if systemctl list-unit-files | grep -q "^${SERVICE_NAME}.service"; then
     fi
 fi
 
-# Start in foreground
-echo -e "${YELLOW}▶️  Starting YT Music Bot...${NC}\n"
+# Start in foreground (manual or called by systemd)
+if [ "$INTERACTIVE" = true ]; then
+    echo -e "${YELLOW}▶️  Starting YT Music Bot...${NC}\n"
+fi
 
 cd "$PROJECT_DIR"
 
 # Check if venv exists
 if [ ! -d "venv" ]; then
-    echo -e "${YELLOW}⚠️  Virtual environment not found${NC}"
-    echo -e "${YELLOW}Creating virtual environment...${NC}\n"
+    if [ "$INTERACTIVE" = true ]; then
+        echo -e "${YELLOW}⚠️  Virtual environment not found${NC}"
+        echo -e "${YELLOW}Creating virtual environment...${NC}\n"
+    fi
     python3 -m venv venv
     
     if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ Failed to create virtual environment${NC}"
+        if [ "$INTERACTIVE" = true ]; then
+            echo -e "${RED}❌ Failed to create virtual environment${NC}"
+        fi
         exit 1
     fi
 fi
 
 # Activate venv
-echo -e "${BLUE}🔧 Activating virtual environment...${NC}"
+if [ "$INTERACTIVE" = true ]; then
+    echo -e "${BLUE}🔧 Activating virtual environment...${NC}"
+fi
 source venv/bin/activate
 
 # Check if dependencies are installed
 if [ ! -f "venv/lib/python3.*/site-packages/telegram" ]; then
-    echo -e "${YELLOW}📦 Installing dependencies...${NC}\n"
+    if [ "$INTERACTIVE" = true ]; then
+        echo -e "${YELLOW}📦 Installing dependencies...${NC}\n"
+    fi
     pip install -r requirements.txt
     
     if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ Failed to install dependencies${NC}"
+        if [ "$INTERACTIVE" = true ]; then
+            echo -e "${RED}❌ Failed to install dependencies${NC}"
+        fi
         exit 1
     fi
 fi
 
 # Check .env file
 if [ ! -f ".env" ]; then
-    echo -e "${RED}❌ .env file not found!${NC}"
-    echo -e "${YELLOW}Please create .env file with your configuration${NC}"
-    echo ""
-    echo "Example:"
-    echo "  TELEGRAM_BOT_TOKEN=your_bot_token_here"
-    echo "  TELEGRAM_USER_ID=your_user_id_here"
-    echo ""
+    if [ "$INTERACTIVE" = true ]; then
+        echo -e "${RED}❌ .env file not found!${NC}"
+        echo -e "${YELLOW}Please create .env file with your configuration${NC}"
+        echo ""
+        echo "Example:"
+        echo "  TELEGRAM_BOT_TOKEN=your_bot_token_here"
+        echo "  TELEGRAM_USER_ID=your_user_id_here"
+        echo ""
+    fi
     exit 1
 fi
 
-echo -e "${GREEN}✅ Starting bot...${NC}\n"
-echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
+if [ "$INTERACTIVE" = true ]; then
+    echo -e "${GREEN}✅ Starting bot...${NC}\n"
+    echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+fi
 
 # Run the bot
 python3 main.py

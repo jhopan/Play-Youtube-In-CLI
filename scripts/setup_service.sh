@@ -48,7 +48,7 @@ case $SERVICE_TYPE in
             BOT_DIR="$DEFAULT_BOT_DIR"
         else
             echo "⚠️  Default directory not found"
-            read -p "Enter bot directory path: " BOT_DIR
+            read -p "Enter bot directory path:" BOT_DIR
             BOT_DIR="${BOT_DIR/#\~/$HOME_DIR}"
         fi
         
@@ -58,19 +58,22 @@ case $SERVICE_TYPE in
             exit 1
         fi
         
-        # Check for venv
-        if [ -d "$BOT_DIR/venv" ]; then
-            PYTHON_EXEC="$BOT_DIR/venv/bin/python"
-            echo "✅ Using virtual environment"
-        else
-            PYTHON_EXEC="/usr/bin/python3"
-            echo "✅ Using system Python"
+        # Check if start.sh exists
+        if [ ! -f "$BOT_DIR/scripts/start.sh" ]; then
+            echo "❌ scripts/start.sh not found in $BOT_DIR"
+            exit 1
         fi
+        
+        # Make scripts executable
+        chmod +x "$BOT_DIR/scripts/start.sh" 2>/dev/null || true
+        chmod +x "$BOT_DIR/scripts/stop.sh" 2>/dev/null || true
         
         SERVICE_NAME="ytmusic-bot"
         DESCRIPTION="YouTube Music Telegram Bot"
-        EXEC_START="$PYTHON_EXEC $BOT_DIR/main.py"
+        EXEC_START="$BOT_DIR/scripts/start.sh"
+        EXEC_STOP="$BOT_DIR/scripts/stop.sh"
         WORKING_DIR="$BOT_DIR"
+        USE_CUSTOM_SCRIPTS=true
         ;;
         
     2)
@@ -154,7 +157,32 @@ SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 echo ""
 echo "🔨 Creating service file..."
 
-sudo tee $SERVICE_FILE > /dev/null <<EOF
+if [ "${USE_CUSTOM_SCRIPTS:-false}" = "true" ]; then
+    # For services using custom start/stop scripts (like ytmusic-bot)
+    sudo tee $SERVICE_FILE > /dev/null <<EOF
+[Unit]
+Description=$DESCRIPTION
+After=network.target
+
+[Service]
+Type=forking
+User=$CURRENT_USER
+WorkingDirectory=$WORKING_DIR
+ExecStart=$EXEC_START
+ExecStop=$EXEC_STOP
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=$SERVICE_NAME
+
+[Install]
+WantedBy=multi-user.target
+EOF
+else
+    # For standard services
+    sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=$DESCRIPTION
 After=network.target
@@ -174,6 +202,7 @@ SyslogIdentifier=$SERVICE_NAME
 [Install]
 WantedBy=multi-user.target
 EOF
+fi
 
 echo "✅ Service file created: $SERVICE_FILE"
 
@@ -210,14 +239,29 @@ fi
 echo ""
 echo "✅ Service setup complete!"
 echo ""
-echo "📝 Useful commands:"
-echo "  sudo systemctl start $SERVICE_NAME      - Start service"
-echo "  sudo systemctl stop $SERVICE_NAME       - Stop service"
-echo "  sudo systemctl restart $SERVICE_NAME    - Restart service"
-echo "  sudo systemctl status $SERVICE_NAME     - Check status"
-echo "  sudo systemctl enable $SERVICE_NAME     - Enable on boot"
-echo "  sudo systemctl disable $SERVICE_NAME    - Disable on boot"
-echo "  sudo journalctl -u $SERVICE_NAME -f     - View live logs"
+
+if [ "${USE_CUSTOM_SCRIPTS:-false}" = "true" ]; then
+    echo "📝 Quick commands:"
+    echo "  ./scripts/start.sh                      - Start bot (easy way)"
+    echo "  ./scripts/stop.sh                       - Stop bot (easy way)"
+    echo "  sudo ./scripts/manage_service.sh        - Manage service"
+    echo ""
+    echo "📝 Systemctl commands:"
+    echo "  sudo systemctl start $SERVICE_NAME      - Start service"
+    echo "  sudo systemctl stop $SERVICE_NAME       - Stop service"
+    echo "  sudo systemctl restart $SERVICE_NAME    - Restart service"
+    echo "  sudo systemctl status $SERVICE_NAME     - Check status"
+    echo "  sudo journalctl -u $SERVICE_NAME -f     - View live logs"
+else
+    echo "📝 Useful commands:"
+    echo "  sudo systemctl start $SERVICE_NAME      - Start service"
+    echo "  sudo systemctl stop $SERVICE_NAME       - Stop service"
+    echo "  sudo systemctl restart $SERVICE_NAME    - Restart service"
+    echo "  sudo systemctl status $SERVICE_NAME     - Check status"
+    echo "  sudo systemctl enable $SERVICE_NAME     - Enable on boot"
+    echo "  sudo systemctl disable $SERVICE_NAME    - Disable on boot"
+    echo "  sudo journalctl -u $SERVICE_NAME -f     - View live logs"
+fi
 echo ""
 echo "💡 Tip: Use scripts/setup_alias.sh to create convenient aliases!"
 echo ""
